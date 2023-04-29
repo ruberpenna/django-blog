@@ -1,0 +1,45 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+    {% for post in lists %}
+        <div class="post">
+            <div class="date">
+                <span class="glyphicon glyphicon-time"></span> {{ post.published_date | date:'Y-m-d H:i' }}&nbsp;
+                <span class="glyphicon glyphicon-th-list"></span> {{ post.ctg }}
+            </div>
+            <h3>
+                <a href="{% url 'post_detail' pk=post.pk %}">{{ post.title }}</a> 
+                <span class="comm_count">[{{ post.approved_comments.count }}]</span>
+            </h3>
+        </div>
+    {% endfor %}
+
+    <div class="paging">
+        <nav aria-label="Page navigation example">
+            <ul class="pagination">
+                {% if lists.has_previous %}
+                    <li><a href="?page=1"><span>«</span></a></li>
+                    <!-- <li><a href="?page={{lists.previous_page_number}}">＜</a></li> -->
+                {% else %}
+                    <li class="disabled"><span>«</span></li>
+                    <!-- <li class="disabled"><span>＜</span></a></li> -->
+                {% endif %}
+                {% for i in lists.paginator.page_range %}
+                    {% if lists.number == i %}
+                    <li class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
+                    {% else %}
+                    <li><a href="?page={{ i }}">{{ i }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                <!-- <li><span>{{lists.number}} / {{lists.paginator.num_pages}}</span></li> -->
+                {% if lists.has_next %}
+                    <!-- <li><a href="?page={{lists.next_page_number}}"><span>＞</span></a></li> -->
+                    <li><a href="?page={{lists.paginator.num_pages}}"><span>»</span></a></li>
+                {% else %}
+                    <!-- <li class="disabled"><span>＞</span></li> -->
+                    <li class="disabled"><span>»</span></a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endblock %}

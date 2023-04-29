@@ -1,0 +1,13 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+    <h1>등록 및 수정</h1>
+    <hr>
+    <form method="POST" class="post-form">{% csrf_token %}
+        {{ form.as_p }}
+<!--         <input id="textinput" name="textinput" type="text" name="title" maxlength="200" id="id_title" placeholder="제목" class="form-control input-md">
+        <br/> -->
+        <a class="btn btn-default" href="javascript:history.back();">취소</a>
+        <button type="submit" class="save btn btn-success">저장</button>
+    </form>
+{% endblock %}

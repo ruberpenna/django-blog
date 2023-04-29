@@ -1,0 +1,43 @@
+{% load static %}
+<html>
+    <head>
+        <title>Pennatic Django Blog</title>
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+        <link href='//fonts.googleapis.com/css?family=Lobster&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="{% static 'css/blog.css' %}">
+		<link rel="icon" href="{% static 'favicon.ico' %}">
+    </head>
+    <body>
+        <div class="base-page">
+            <div class="page-header">
+                    {% if user.is_authenticated %}
+                        <a href="/admin/logout" class="top-menu"><span class="glyphicon glyphicon-log-out"></span></a>        
+                        <a href="/admin" class="top-menu"><span class="glyphicon glyphicon-user"></span></a>
+                        <a href="{% url 'post_draft_list' %}" class="top-menu"><span class="glyphicon glyphicon-edit"></span></a>
+                        <a href="{% url 'post_new' %}" class="top-menu"><span class="glyphicon glyphicon-plus"></span></a>
+                    {% else %}
+                        <a href="/admin" class="top-menu"><span class="glyphicon glyphicon-log-in"></span></a>        
+                    {% endif %}
+                <h1><a href="/">Pennatic Blog</a></h1>
+            </div>
+            <div class="page-category">
+                <div class="category-row">
+                    <a href="/">전체</a>&nbsp;|&nbsp;
+                    <span>정리글</span>&nbsp;|&nbsp;
+                    <span>소스</span>&nbsp;|&nbsp;
+                    <span>백업</span>&nbsp;|&nbsp;
+                    <span>기타</span>
+                </div>
+            </div>
+            <div class="content container">
+                <div class="row">
+                    <div class="col-md-8">
+                        {% block content %}
+                        {% endblock %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

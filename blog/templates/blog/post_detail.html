@@ -1,0 +1,41 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+    <div class="post">
+        <div class="date">
+        {% if post.published_date %}
+                {{ post.published_date | date:'Y-m-d H:i' }}  
+        {% else %}
+		    <a class="btn btn-default" href="{% url 'post_publish' pk=post.pk %}">Publish</a>
+		{% endif %}
+        {% if user.is_authenticated %}
+		     <a class="btn btn-info" href="{% url 'post_edit' pk=post.pk %}"><span class="glyphicon glyphicon-pencil"></span></a>
+		     <a class="btn btn-danger" href="{% url 'post_remove' pk=post.pk %}"><span class="glyphicon glyphicon-remove"></span></a>
+		{% endif %}
+        </div>
+        <h3><b>{{ post.title }}</b></h3>
+        <hr>
+        {% autoescape off %}{{ post.text|linebreaksbr }}{% endautoescape %}
+    </div>
+    <hr>
+    <a class="btn btn-primary" href="{% url 'add_comment_to_post' pk=post.pk %}">댓글 등록</a>
+    {% for comment in post.comments.all %}
+        {% if user.is_authenticated or comment.approved_comment %}
+        <div class="comment">
+            <div class="date">
+                <strong>{{ comment.author }}</strong>
+                &nbsp;&nbsp;&nbsp;
+                {{ comment.created_date | date:'Y-m-d H:i' }}
+                {% if not comment.approved_comment %}
+                    <a class="btn btn-danger" href="{% url 'comment_remove' pk=comment.pk %}"><span class="glyphicon glyphicon-remove"></span></a>
+                    <a class="btn btn-success" href="{% url 'comment_approve' pk=comment.pk %}"><span class="glyphicon glyphicon-ok"></span></a>
+                {% endif %}
+            </div>
+            <p>{{ comment.text|linebreaks }}</p>
+        </div>
+        {% endif %}
+    {% empty %}
+        <br/><br/>
+        <p>댓글이 존재하지 않습니다.</p>
+    {% endfor %}
+{% endblock %}
