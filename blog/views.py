@@ -4,8 +4,10 @@ from .models import Post, Comment
 from .forms import PostForm, CommentForm
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db.models import Q
 import logging
 
+# 로거 선언
 logger = logging.getLogger('django')
 
 # Create your views here.
@@ -13,9 +15,9 @@ logger = logging.getLogger('django')
 # 글 리스트
 def post_list(request):
     posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('-published_date')
-
-    blog_list = Post.objects.all()
-    logger.info(blog_list)
+    
+    #blog_list = Post.objects.all()
+    # logger.info(blog_list)
 
     paginator = Paginator(posts, 10)
     page = request.GET.get('page')
@@ -58,11 +60,12 @@ def post_edit(request, pk):
         form = PostForm(instance=post)
     return render(request, 'blog/post_edit.html', {'form': form})
 
-# 승인 대기글 목록
+# 승인 대기 글/댓글 목록
 @login_required
 def post_draft_list(request):
     posts = Post.objects.filter(published_date__isnull=True).order_by('created_date')
-    return render(request, 'blog/post_draft_list.html', {'posts': posts})
+    comms = Comment.objects.filter(approved_comment=False).order_by('created_date')
+    return render(request, 'blog/post_draft_list.html', {'posts': posts, 'comms': comms})
 
 # 대기글 승인
 @login_required
@@ -105,3 +108,18 @@ def comment_remove(request, pk):
     comment = get_object_or_404(Comment, pk=pk)
     comment.delete()
     return redirect('post_detail', pk=comment.post.pk)
+
+# 검색 함수
+def post_srch(request):
+    page = request.GET.get('page', '1') # 페이지
+    kwd = request.GET.get('kwd', '') # 검색어
+    posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('-published_date')
+    if kwd:
+        posts = posts.filter(
+            Q(title__icontains=kwd) | # 제목 검색
+            Q(text__icontains=kwd) # 내용 검색
+        ).distinct()
+    paginator = Paginator(posts, 10) # 페이지당 10개씩
+    lists = paginator.get_page(page)
+    context = {'lists': lists, 'page': page, 'kwd': kwd}
+    return render(request, 'blog/post_list.html', context)

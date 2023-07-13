@@ -22,13 +22,11 @@
                 <h1><a href="/">Pennatic Blog</a></h1>
             </div>
             <div class="page-category">
-                <div class="category-row">
-                    <a href="/">전체</a>&nbsp;|&nbsp;
-                    <span>정리글</span>&nbsp;|&nbsp;
-                    <span>소스</span>&nbsp;|&nbsp;
-                    <span>백업</span>&nbsp;|&nbsp;
-                    <span>기타</span>
-                </div>
+                    <div class="srch-row">
+                        <input type="text" id="srch_kwd" name="srch_kwd" class="form-control" onkeyup="if(window.event.keyCode==13){btnSrchEnt()}" placeholder="제목+내용 검색" style="width: 300px"  value="{{ kwd|default_if_none:'' }}" />
+                    </div>
+                    <!-- <a href="#" class="srch-icon"><span class="glyphicon glyphicon-search"></span></a> -->
+                    <button class="btn btn-outline-secondary" type="button" id="btn_srch"><span class="glyphicon glyphicon-search"></span></button>
             </div>
             <div class="content container">
                 <div class="row">
@@ -36,8 +34,41 @@
                         {% block content %}
                         {% endblock %}
                     </div>
+
                 </div>
             </div>
         </div>
     </body>
 </html>
+<!-- 검색 폼 -->
+<form id="srchForm" method="get" action="{% url 'post_srch' %}">
+    <input type="hidden" id="kwd" name="kwd" value="{{ kwd|default_if_none:'' }}">
+    <input type="hidden" id="page" name="page" value="{{ page }}">
+</form>
+
+{% block script %}
+<script type='text/javascript'>
+    const page_elements = document.getElementsByClassName("page-link");
+    Array.from(page_elements).forEach(function(element) {
+        element.addEventListener('click', function() {
+            document.getElementById('page').value = this.dataset.page;
+            document.getElementById('srchForm').submit();
+        });
+    });
+    const btn_srch = document.getElementById("btn_srch");
+    btn_srch.addEventListener('click', function() {
+        btnSrchEnt()
+    });
+
+    function btnSrchEnt() {
+        if(document.getElementById('srch_kwd').value.length > 1) {
+            document.getElementById('kwd').value = document.getElementById('srch_kwd').value;
+            document.getElementById('page').value = 1;  // 검색버튼을 클릭할 경우 1페이지부터 조회한다.
+            document.getElementById('srchForm').submit();
+        } else {
+            alert("검색은 두 글자 이상 입력 필수입니다.");
+            return false;
+        }
+    }
+</script>
+{% endblock %}

@@ -4,9 +4,10 @@
     <div class="post">
         <div class="date">
         {% if post.published_date %}
-                {{ post.published_date | date:'Y-m-d H:i' }}  
+            <span class="glyphicon glyphicon-time"></span> {{ post.published_date | date:'Y-m-d H:i' }}&nbsp;
+            <span class="glyphicon glyphicon-th-list"></span> {{ post.ctg }}
         {% else %}
-		    <a class="btn btn-default" href="{% url 'post_publish' pk=post.pk %}">Publish</a>
+		    <a class="btn btn-success" href="{% url 'post_publish' pk=post.pk %}">승인</a>
 		{% endif %}
         {% if user.is_authenticated %}
 		     <a class="btn btn-info" href="{% url 'post_edit' pk=post.pk %}"><span class="glyphicon glyphicon-pencil"></span></a>
@@ -18,7 +19,14 @@
         {% autoescape off %}{{ post.text|linebreaksbr }}{% endautoescape %}
     </div>
     <hr>
-    <a class="btn btn-primary" href="{% url 'add_comment_to_post' pk=post.pk %}">댓글 등록</a>
+    <div class="row">
+        <div class="col-12" style="margin-left: 25px;">
+            <a class="btn btn-primary" href="{% url 'add_comment_to_post' pk=post.pk %}">댓글 등록</a>
+            <div style="float: right">
+                <a class="btn btn-default" href="javascript:history.back()">목록</a>
+            </div>
+        </div>
+    </div>
     {% for comment in post.comments.all %}
         {% if user.is_authenticated or comment.approved_comment %}
         <div class="comment">
@@ -38,4 +46,5 @@
         <br/><br/>
         <p>댓글이 존재하지 않습니다.</p>
     {% endfor %}
+    <hr>
 {% endblock %}

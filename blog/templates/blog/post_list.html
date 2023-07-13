@@ -9,7 +9,7 @@
             </div>
             <h3>
                 <a href="{% url 'post_detail' pk=post.pk %}">{{ post.title }}</a> 
-                <span class="comm_count">[{{ post.approved_comments.count }}]</span>
+                <span class="comment_cnt">[{{ post.approved_comments.count }}]</span>
             </h3>
         </div>
     {% endfor %}
@@ -18,7 +18,8 @@
         <nav aria-label="Page navigation example">
             <ul class="pagination">
                 {% if lists.has_previous %}
-                    <li><a href="?page=1"><span>«</span></a></li>
+                    <li><a class="page-link" data-page="1" href="javascript:void(0)"><span>«</span></a></li>
+                    <!-- <li><a href="?page=1"><span>«</span></a></li> -->
                     <!-- <li><a href="?page={{lists.previous_page_number}}">＜</a></li> -->
                 {% else %}
                     <li class="disabled"><span>«</span></li>
@@ -28,13 +29,15 @@
                     {% if lists.number == i %}
                     <li class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
                     {% else %}
-                    <li><a href="?page={{ i }}">{{ i }}</a></li>
+                    <li><a class="page-link" data-page="{{ i }}" href="javascript:void(0)">{{ i }}</a></li>
+                    <!-- <li><a href="?page={{ i }}">{{ i }}</a></li> -->
                     {% endif %}
                 {% endfor %}
                 <!-- <li><span>{{lists.number}} / {{lists.paginator.num_pages}}</span></li> -->
                 {% if lists.has_next %}
                     <!-- <li><a href="?page={{lists.next_page_number}}"><span>＞</span></a></li> -->
-                    <li><a href="?page={{lists.paginator.num_pages}}"><span>»</span></a></li>
+                    <!-- <li><a href="?page={{lists.paginator.num_pages}}"><span>»</span></a></li> -->
+                    <li><a class="page-link" data-page="{{ lists.paginator.num_pages }}" href="javascript:void(0)"><span>»</span></a></li>
                 {% else %}
                     <!-- <li class="disabled"><span>＞</span></li> -->
                     <li class="disabled"><span>»</span></a></li>
@@ -42,4 +45,5 @@
             </ul>
         </nav>
     </div>
+    <hr>
 {% endblock %}

@@ -1,17 +1,45 @@
 {% extends 'blog/base.html' %}
 
 {% block content %}
+    <h1>승인 대기 글 목록</h1>
+    <hr>
     {% for post in posts %}
         <div class="post">
-            <p class="date">(임시 저장일) : {{ post.created_date | date:'Y-m-d H:i' }}</p>
+            <p class="date">
+                <span class="glyphicon glyphicon-time"></span> {{ post.created_date | date:'Y-m-d H:i' }}&nbsp;
+                <span class="glyphicon glyphicon-th-list"></span> {{ post.ctg }}
+                <a class="btn btn-success" href="{% url 'post_publish' pk=post.pk %}">승인</a>
+            </p>
             <h3>
             	<a href="{% url 'post_detail' pk=post.pk %}">{{ post.title }}</a>
-            	<span class="comm_count">{{ post.approved_comments.count }}</span>
+            	<span class="comment_cnt">[{{ post.approved_comments.count }}]</span>
             </h3>
         </div>
     {% empty %}
         <div class="empty_draft">
-            <span>승인 대기중인 글이 존재하지 않습니다.</span>
+            <span>승인 대기 중인 글이 존재하지 않습니다.</span>
+        </div>
+    {% endfor %}
+    <hr>
+    <h1>승인 대기 댓글 목록</h1>
+    <hr>
+    {% for comm in comms %}
+        <div class="comment">
+            <div class="date">
+                <strong>{{ comm.author }}</strong>
+                &nbsp;&nbsp;&nbsp;
+                {{ comm.created_date | date:'Y-m-d H:i' }}
+                {% if not comm.approved_comment %}
+                    <a class="btn btn-danger" href="{% url 'comment_remove' pk=comm.pk %}"><span class="glyphicon glyphicon-remove"></span></a>
+                    <a class="btn btn-success" href="{% url 'comment_approve' pk=comm.pk %}"><span class="glyphicon glyphicon-ok"></span></a>
+                    <a class="btn btn-default" href="{% url 'post_detail' pk=comm.post_id %}">원글</a>
+                {% endif %}
+            </div>
+            <p>{{ comm.text|linebreaks }}</p>
+        </div>
+    {% empty %}
+        <div class="empty_draft">
+            <span>승인 대기 중인 댓글이 존재하지 않습니다.</span>
         </div>
     {% endfor %}
 {% endblock %}
