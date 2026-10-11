@@ -1,45 +1,46 @@
 {% extends 'blog/base.html' %}
 
 {% block content %}
-    <h1>승인 대기 글 목록</h1>
-    <hr>
-    {% for post in posts %}
-        <div class="post">
-            <p class="date">
-                <span class="glyphicon glyphicon-time"></span> {{ post.created_date | date:'Y-m-d H:i' }}&nbsp;
-                <span class="glyphicon glyphicon-th-list"></span> {{ post.ctg }}
-                <a class="btn btn-success" href="{% url 'post_publish' pk=post.pk %}">승인</a>
-            </p>
-            <h3>
-            	<a href="{% url 'post_detail' pk=post.pk %}">{{ post.title }}</a>
-            	<span class="comment_cnt">[{{ post.approved_comments.count }}]</span>
-            </h3>
-        </div>
-    {% empty %}
-        <div class="empty_draft">
-            <span>승인 대기 중인 글이 존재하지 않습니다.</span>
-        </div>
-    {% endfor %}
-    <hr>
-    <h1>승인 대기 댓글 목록</h1>
-    <hr>
-    {% for comm in comms %}
-        <div class="comment">
-            <div class="date">
-                <strong>{{ comm.author }}</strong>
-                &nbsp;&nbsp;&nbsp;
-                {{ comm.created_date | date:'Y-m-d H:i' }}
-                {% if not comm.approved_comment %}
-                    <a class="btn btn-danger" href="{% url 'comment_remove' pk=comm.pk %}"><span class="glyphicon glyphicon-remove"></span></a>
-                    <a class="btn btn-success" href="{% url 'comment_approve' pk=comm.pk %}"><span class="glyphicon glyphicon-ok"></span></a>
-                    <a class="btn btn-default" href="{% url 'post_detail' pk=comm.post_id %}">원글</a>
-                {% endif %}
+    <div class="panel-box">
+        <h2 class="section-title">승인 대기 글</h2>
+        {% for post in posts %}
+            <div class="draft-row">
+                <div>
+                    <div class="post-meta">
+                        <span class="badge-ctg">{{ post.ctg }}</span>
+                        <time>{{ post.created_date|date:'Y.m.d H:i' }}</time>
+                    </div>
+                    <a href="{% url 'post_detail' pk=post.pk %}" class="draft-title">{{ post.title }}</a>
+                </div>
+                <form method="POST" action="{% url 'post_publish' pk=post.pk %}" class="inline-form">{% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-success">승인</button>
+                </form>
             </div>
-            <p>{{ comm.text|linebreaks }}</p>
-        </div>
-    {% empty %}
-        <div class="empty_draft">
-            <span>승인 대기 중인 댓글이 존재하지 않습니다.</span>
-        </div>
-    {% endfor %}
+        {% empty %}
+            <div class="empty-box">승인 대기 중인 글이 존재하지 않습니다.</div>
+        {% endfor %}
+    </div>
+
+    <div class="panel-box">
+        <h2 class="section-title">승인 대기 댓글</h2>
+        {% for comm in comms %}
+            <div class="comment-item pending">
+                <div class="comment-meta">
+                    <strong>{{ comm.author }}</strong>
+                    <time>{{ comm.created_date|date:'Y.m.d H:i' }}</time>
+                    <form method="POST" action="{% url 'comment_approve' pk=comm.pk %}" class="inline-form">{% csrf_token %}
+                        <button type="submit" class="btn btn-xs btn-success" title="승인"><span class="glyphicon glyphicon-ok"></span></button>
+                    </form>
+                    <form method="POST" action="{% url 'comment_remove' pk=comm.pk %}" class="inline-form"
+                          data-confirm-title="댓글을 삭제할까요?" data-confirm="{{ comm.author }}님의 댓글이 삭제되며 되돌릴 수 없습니다.">{% csrf_token %}
+                        <button type="submit" class="btn btn-xs btn-danger" title="삭제"><span class="glyphicon glyphicon-remove"></span></button>
+                    </form>
+                    <a class="btn btn-xs btn-default" href="{% url 'post_detail' pk=comm.post_id %}">원글</a>
+                </div>
+                <div class="comment-text">{{ comm.text|linebreaks }}</div>
+            </div>
+        {% empty %}
+            <div class="empty-box">승인 대기 중인 댓글이 존재하지 않습니다.</div>
+        {% endfor %}
+    </div>
 {% endblock %}

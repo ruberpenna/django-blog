@@ -3,6 +3,7 @@ from django.utils import timezone
 from .models import Post, Comment
 from .forms import PostForm, CommentForm
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.db.models import Q
 import logging
@@ -69,6 +70,7 @@ def post_draft_list(request):
 
 # 대기글 승인
 @login_required
+@require_POST
 def post_publish(request, pk):
     post = get_object_or_404(Post, pk=pk)
     post.publish()
@@ -76,6 +78,7 @@ def post_publish(request, pk):
 
 # 글 삭제
 @login_required
+@require_POST
 def post_remove(request, pk):
     post = get_object_or_404(Post, pk=pk)
     post.delete()
@@ -95,8 +98,9 @@ def add_comment_to_post(request, pk):
         form = CommentForm()
     return render(request, 'blog/add_comment_to_post.html', {'form': form})
 
-# 댓글 등록
+# 댓글 승인
 @login_required
+@require_POST
 def comment_approve(request, pk):
     comment = get_object_or_404(Comment, pk=pk)
     comment.approve()
@@ -104,6 +108,7 @@ def comment_approve(request, pk):
 
 # 댓글 삭제
 @login_required
+@require_POST
 def comment_remove(request, pk):
     comment = get_object_or_404(Comment, pk=pk)
     comment.delete()
@@ -113,7 +118,10 @@ def comment_remove(request, pk):
 def post_srch(request):
     page = request.GET.get('page', '1') # 페이지
     kwd = request.GET.get('kwd', '') # 검색어
+    ctg = request.GET.get('ctg', '') # 카테고리
     posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('-published_date')
+    if ctg:
+        posts = posts.filter(ctg=ctg)
     if kwd:
         posts = posts.filter(
             Q(title__icontains=kwd) | # 제목 검색
@@ -121,5 +129,5 @@ def post_srch(request):
         ).distinct()
     paginator = Paginator(posts, 10) # 페이지당 10개씩
     lists = paginator.get_page(page)
-    context = {'lists': lists, 'page': page, 'kwd': kwd}
+    context = {'lists': lists, 'page': page, 'kwd': kwd, 'ctg': ctg}
     return render(request, 'blog/post_list.html', context)

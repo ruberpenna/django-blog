@@ -1,0 +1,6 @@
+bootstrap4==0.1.0
+Django==2.0.13
+django-summernote==0.8.11.6
+psycopg2==2.8.6
+python-dotenv==1.0.1
+pytz==2020.1

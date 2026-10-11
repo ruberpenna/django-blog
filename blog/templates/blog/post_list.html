@@ -1,49 +1,53 @@
 {% extends 'blog/base.html' %}
 
 {% block content %}
-    {% for post in lists %}
-        <div class="post">
-            <div class="date">
-                <span class="glyphicon glyphicon-time"></span> {{ post.published_date | date:'Y-m-d H:i' }}&nbsp;
-                <span class="glyphicon glyphicon-th-list"></span> {{ post.ctg }}
-            </div>
-            <h3>
-                <a href="{% url 'post_detail' pk=post.pk %}">{{ post.title }}</a> 
-                <span class="comment_cnt">[{{ post.approved_comments.count }}]</span>
-            </h3>
+    {% if kwd or ctg %}
+        <div class="list-heading">
+            {% if ctg %}<span class="badge-ctg">{{ ctg }}</span>{% endif %}
+            {% if kwd %}<strong>'{{ kwd }}'</strong> 검색 결과{% endif %}
+            <span class="list-count">{{ lists.paginator.count }}건</span>
+            <a href="/" class="list-reset">전체 보기</a>
         </div>
+    {% endif %}
+
+    {% for post in lists %}
+        <article class="post-card">
+            <div class="post-meta">
+                <a href="{% url 'post_srch' %}?ctg={{ post.ctg|urlencode }}" class="badge-ctg">{{ post.ctg }}</a>
+                <time>{{ post.published_date|date:'Y.m.d H:i' }}</time>
+            </div>
+            <h2 class="post-title"><a href="{% url 'post_detail' pk=post.pk %}">{{ post.title }}</a></h2>
+            <p class="post-excerpt">{{ post.text|striptags|safe|truncatechars:160 }}</p>
+            <div class="post-foot">
+                <span><span class="glyphicon glyphicon-comment"></span> {{ post.approved_comments.count }}</span>
+                <a href="{% url 'post_detail' pk=post.pk %}" class="read-more">계속 읽기 &rarr;</a>
+            </div>
+        </article>
+    {% empty %}
+        <div class="empty-box">게시글이 없습니다.</div>
     {% endfor %}
 
-    <div class="paging">
-        <nav aria-label="Page navigation example">
-            <ul class="pagination">
-                {% if lists.has_previous %}
-                    <li><a class="page-link" data-page="1" href="javascript:void(0)"><span>«</span></a></li>
-                    <!-- <li><a href="?page=1"><span>«</span></a></li> -->
-                    <!-- <li><a href="?page={{lists.previous_page_number}}">＜</a></li> -->
+    {% if lists.paginator.num_pages > 1 %}
+    <nav class="pager" aria-label="페이지">
+        {% if lists.has_previous %}
+            <a href="?page=1{% if kwd %}&amp;kwd={{ kwd|urlencode }}{% endif %}{% if ctg %}&amp;ctg={{ ctg|urlencode }}{% endif %}">&laquo;</a>
+        {% else %}
+            <span class="disabled">&laquo;</span>
+        {% endif %}
+        {% for i in lists.paginator.page_range %}
+            {% if i >= lists.number|add:-2 and i <= lists.number|add:2 %}
+                {% if lists.number == i %}
+                    <span class="current">{{ i }}</span>
                 {% else %}
-                    <li class="disabled"><span>«</span></li>
-                    <!-- <li class="disabled"><span>＜</span></a></li> -->
+                    <a href="?page={{ i }}{% if kwd %}&amp;kwd={{ kwd|urlencode }}{% endif %}{% if ctg %}&amp;ctg={{ ctg|urlencode }}{% endif %}">{{ i }}</a>
                 {% endif %}
-                {% for i in lists.paginator.page_range %}
-                    {% if lists.number == i %}
-                    <li class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
-                    {% else %}
-                    <li><a class="page-link" data-page="{{ i }}" href="javascript:void(0)">{{ i }}</a></li>
-                    <!-- <li><a href="?page={{ i }}">{{ i }}</a></li> -->
-                    {% endif %}
-                {% endfor %}
-                <!-- <li><span>{{lists.number}} / {{lists.paginator.num_pages}}</span></li> -->
-                {% if lists.has_next %}
-                    <!-- <li><a href="?page={{lists.next_page_number}}"><span>＞</span></a></li> -->
-                    <!-- <li><a href="?page={{lists.paginator.num_pages}}"><span>»</span></a></li> -->
-                    <li><a class="page-link" data-page="{{ lists.paginator.num_pages }}" href="javascript:void(0)"><span>»</span></a></li>
-                {% else %}
-                    <!-- <li class="disabled"><span>＞</span></li> -->
-                    <li class="disabled"><span>»</span></a></li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
-    <hr>
+            {% endif %}
+        {% endfor %}
+        {% if lists.has_next %}
+            <a href="?page={{ lists.paginator.num_pages }}{% if kwd %}&amp;kwd={{ kwd|urlencode }}{% endif %}{% if ctg %}&amp;ctg={{ ctg|urlencode }}{% endif %}">&raquo;</a>
+        {% else %}
+            <span class="disabled">&raquo;</span>
+        {% endif %}
+    </nav>
+    {% endif %}
 {% endblock %}

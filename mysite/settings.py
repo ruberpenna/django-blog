@@ -11,16 +11,27 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 비밀 값은 프로젝트 루트의 .env 파일(또는 OS 환경변수)에서 읽음 - .env.example 참고
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
+def get_env(name, default=None):
+    value = os.environ.get(name, default)
+    if value is None:
+        raise ImproperlyConfigured(f'환경변수 {name} 가 설정되지 않았습니다. .env 파일을 확인하세요.')
+    return value
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'zko%hudj5oj#0b3(%2fmd$!_zyz13upyts341jcwca!!h48+db'
+SECRET_KEY = get_env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -65,6 +76,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'blog.context_processors.sidebar',
             ],
         },
     },
@@ -84,11 +96,11 @@ DATABASES = {
 
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'neo284500',
-        'HOST': '119.197.13.37',
-        'PORT': '5432',
+        'NAME': get_env('DB_NAME', 'postgres'),
+        'USER': get_env('DB_USER', 'postgres'),
+        'PASSWORD': get_env('DB_PASSWORD'),
+        'HOST': get_env('DB_HOST'),
+        'PORT': get_env('DB_PORT', '5432'),
     }
 }
 
@@ -156,3 +168,10 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# 에디터 설정
+SUMMERNOTE_CONFIG = {
+    'summernote': {
+        'lang': 'ko-KR',
+    },
+}

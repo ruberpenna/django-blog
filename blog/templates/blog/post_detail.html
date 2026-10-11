@@ -1,50 +1,72 @@
 {% extends 'blog/base.html' %}
 
+{% block title %}{{ post.title }} - Pennatic Blog{% endblock %}
+
 {% block content %}
-    <div class="post">
-        <div class="date">
-        {% if post.published_date %}
-            <span class="glyphicon glyphicon-time"></span> {{ post.published_date | date:'Y-m-d H:i' }}&nbsp;
-            <span class="glyphicon glyphicon-th-list"></span> {{ post.ctg }}
-        {% else %}
-		    <a class="btn btn-success" href="{% url 'post_publish' pk=post.pk %}">승인</a>
-		{% endif %}
-        {% if user.is_authenticated %}
-		     <a class="btn btn-info" href="{% url 'post_edit' pk=post.pk %}"><span class="glyphicon glyphicon-pencil"></span></a>
-		     <a class="btn btn-danger" href="{% url 'post_remove' pk=post.pk %}"><span class="glyphicon glyphicon-remove"></span></a>
-		{% endif %}
-        </div>
-        <h3><b>{{ post.title }}</b></h3>
-        <hr>
-        {% autoescape off %}{{ post.text|linebreaksbr }}{% endautoescape %}
-    </div>
-    <hr>
-    <div class="row">
-        <div class="col-12" style="margin-left: 25px;">
-            <a class="btn btn-primary" href="{% url 'add_comment_to_post' pk=post.pk %}">댓글 등록</a>
-            <div style="float: right">
-                <a class="btn btn-default" href="javascript:history.back()">목록</a>
-            </div>
-        </div>
-    </div>
-    {% for comment in post.comments.all %}
-        {% if user.is_authenticated or comment.approved_comment %}
-        <div class="comment">
-            <div class="date">
-                <strong>{{ comment.author }}</strong>
-                &nbsp;&nbsp;&nbsp;
-                {{ comment.created_date | date:'Y-m-d H:i' }}
-                {% if not comment.approved_comment %}
-                    <a class="btn btn-danger" href="{% url 'comment_remove' pk=comment.pk %}"><span class="glyphicon glyphicon-remove"></span></a>
-                    <a class="btn btn-success" href="{% url 'comment_approve' pk=comment.pk %}"><span class="glyphicon glyphicon-ok"></span></a>
+    <article class="post-view">
+        <header class="post-view-head">
+            <div class="post-meta">
+                <a href="{% url 'post_srch' %}?ctg={{ post.ctg|urlencode }}" class="badge-ctg">{{ post.ctg }}</a>
+                {% if post.published_date %}
+                    <time>{{ post.published_date|date:'Y.m.d H:i' }}</time>
+                {% else %}
+                    <span class="badge-draft">승인 대기</span>
                 {% endif %}
             </div>
-            <p>{{ comment.text|linebreaks }}</p>
+            <h1 class="post-view-title">{{ post.title }}</h1>
+            {% if user.is_authenticated %}
+            <div class="post-actions">
+                {% if not post.published_date %}
+                    <form method="POST" action="{% url 'post_publish' pk=post.pk %}" class="inline-form">{% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-success"><span class="glyphicon glyphicon-ok"></span> 승인</button>
+                    </form>
+                {% endif %}
+                <a class="btn btn-sm btn-default" href="{% url 'post_edit' pk=post.pk %}"><span class="glyphicon glyphicon-pencil"></span> 수정</a>
+                <form method="POST" action="{% url 'post_remove' pk=post.pk %}" class="inline-form"
+                      data-confirm-title="글을 삭제할까요?" data-confirm="'{{ post.title }}' 글과 댓글이 모두 삭제되며 되돌릴 수 없습니다.">{% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-danger"><span class="glyphicon glyphicon-trash"></span> 삭제</button>
+                </form>
+            </div>
+            {% endif %}
+        </header>
+
+        <div class="post-body">
+            {% autoescape off %}{{ post.text|linebreaksbr }}{% endautoescape %}
         </div>
-        {% endif %}
-    {% empty %}
-        <br/><br/>
-        <p>댓글이 존재하지 않습니다.</p>
-    {% endfor %}
-    <hr>
+    </article>
+
+    <section class="comments">
+        <div class="comments-head">
+            <h3>댓글 <span class="count">{{ post.approved_comments.count }}</span></h3>
+            <div>
+                <a class="btn btn-sm btn-default" href="javascript:history.back()">목록</a>
+                <a class="btn btn-sm btn-primary" href="{% url 'add_comment_to_post' pk=post.pk %}">댓글 쓰기</a>
+            </div>
+        </div>
+        {% for comment in post.comments.all %}
+            {% if user.is_authenticated or comment.approved_comment %}
+            <div class="comment-item{% if not comment.approved_comment %} pending{% endif %}">
+                <div class="comment-meta">
+                    <strong>{{ comment.author }}</strong>
+                    <time>{{ comment.created_date|date:'Y.m.d H:i' }}</time>
+                    {% if not comment.approved_comment %}
+                        <span class="badge-draft">승인 대기</span>
+                        <form method="POST" action="{% url 'comment_approve' pk=comment.pk %}" class="inline-form">{% csrf_token %}
+                            <button type="submit" class="btn btn-xs btn-success" title="승인"><span class="glyphicon glyphicon-ok"></span></button>
+                        </form>
+                    {% endif %}
+                    {% if user.is_authenticated %}
+                        <form method="POST" action="{% url 'comment_remove' pk=comment.pk %}" class="inline-form"
+                              data-confirm-title="댓글을 삭제할까요?" data-confirm="{{ comment.author }}님의 댓글이 삭제되며 되돌릴 수 없습니다.">{% csrf_token %}
+                            <button type="submit" class="btn btn-xs btn-danger" title="삭제"><span class="glyphicon glyphicon-remove"></span></button>
+                        </form>
+                    {% endif %}
+                </div>
+                <div class="comment-text">{{ comment.text|linebreaks }}</div>
+            </div>
+            {% endif %}
+        {% empty %}
+            <div class="empty-box">댓글이 존재하지 않습니다.</div>
+        {% endfor %}
+    </section>
 {% endblock %}

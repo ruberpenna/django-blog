@@ -2,11 +2,9 @@ from django.urls import path, include
 from django.conf.urls import url
 from django.conf.urls.static import static
 from django.conf import settings
-from django.contrib import admin
 from . import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls), # 관리자 페이지
     path('', views.post_list, name='post_list'), # 글 목록
     path('srch/', views.post_srch, name='post_srch'), # 검색 함수
     path('post/<int:pk>/', views.post_detail, name='post_detail'), # 글 상세

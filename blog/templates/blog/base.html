@@ -1,74 +1,116 @@
 {% load static %}
-<html>
+<!DOCTYPE html>
+<html lang="ko">
     <head>
-        <title>Pennatic Django Blog</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}Pennatic Blog{% endblock %}</title>
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
-        <link href='//fonts.googleapis.com/css?family=Lobster&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
-        <link rel="stylesheet" href="{% static 'css/blog.css' %}">
-		<link rel="icon" href="{% static 'favicon.ico' %}">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="{% static 'css/blog.css' %}?v=5">
+        <link rel="icon" href="{% static 'favicon.ico' %}">
     </head>
     <body>
-        <div class="base-page">
-            <div class="page-header">
+        <!-- 상단 헤더 -->
+        <header class="site-header">
+            <div class="wrap header-inner">
+                <a href="/" class="brand">Pennatic<span>Blog</span></a>
+                <nav class="top-nav">
                     {% if user.is_authenticated %}
-                        <a href="/admin/logout" class="top-menu"><span class="glyphicon glyphicon-log-out"></span></a>        
-                        <a href="/admin" class="top-menu"><span class="glyphicon glyphicon-user"></span></a>
-                        <a href="{% url 'post_draft_list' %}" class="top-menu"><span class="glyphicon glyphicon-edit"></span></a>
-                        <a href="{% url 'post_new' %}" class="top-menu"><span class="glyphicon glyphicon-plus"></span></a>
+                        <a href="{% url 'post_new' %}" title="글쓰기"><span class="glyphicon glyphicon-pencil"></span><em>글쓰기</em></a>
+                        <a href="{% url 'post_draft_list' %}" title="승인 대기"><span class="glyphicon glyphicon-inbox"></span><em>승인대기</em></a>
+                        <a href="/admin" title="관리자"><span class="glyphicon glyphicon-cog"></span><em>관리자</em></a>
+                        <a href="/admin/logout" title="로그아웃"><span class="glyphicon glyphicon-log-out"></span><em>로그아웃</em></a>
                     {% else %}
-                        <a href="/admin" class="top-menu"><span class="glyphicon glyphicon-log-in"></span></a>        
+                        <a href="/admin" title="로그인"><span class="glyphicon glyphicon-log-in"></span><em>로그인</em></a>
                     {% endif %}
-                <h1><a href="/">Pennatic Blog</a></h1>
+                </nav>
             </div>
-            <div class="page-category">
-                    <div class="srch-row">
-                        <input type="text" id="srch_kwd" name="srch_kwd" class="form-control" onkeyup="if(window.event.keyCode==13){btnSrchEnt()}" placeholder="제목+내용 검색" style="width: 300px"  value="{{ kwd|default_if_none:'' }}" />
-                    </div>
-                    <!-- <a href="#" class="srch-icon"><span class="glyphicon glyphicon-search"></span></a> -->
-                    <button class="btn btn-outline-secondary" type="button" id="btn_srch"><span class="glyphicon glyphicon-search"></span></button>
-            </div>
-            <div class="content container">
-                <div class="row">
-                    <div class="col-md-8">
-                        {% block content %}
-                        {% endblock %}
-                    </div>
+        </header>
 
-                </div>
-            </div>
+        <div class="wrap layout {% block layout_class %}{% endblock %}">
+            <!-- 본문 -->
+            <main class="main-col">
+                {% block content %}
+                {% endblock %}
+            </main>
+
+            <!-- 사이드바 -->
+            {% block sidebar %}
+            <aside class="side-col">
+                <section class="widget">
+                    <form class="search-box" method="get" action="{% url 'post_srch' %}">
+                        <input type="text" name="kwd" value="{{ kwd|default_if_none:'' }}" placeholder="제목+내용 검색"
+                               minlength="2" required title="검색은 두 글자 이상 입력 필수입니다.">
+                        <button type="submit" aria-label="검색"><span class="glyphicon glyphicon-search"></span></button>
+                    </form>
+                </section>
+
+                <section class="widget">
+                    <h4 class="widget-title">카테고리</h4>
+                    <ul class="cat-list">
+                        <li class="{% if not ctg %}active{% endif %}">
+                            <a href="/">전체 <span class="count">{{ sidebar_total }}</span></a>
+                        </li>
+                        {% for c in sidebar_categories %}
+                        <li class="{% if ctg == c.ctg %}active{% endif %}">
+                            <a href="{% url 'post_srch' %}?ctg={{ c.ctg|urlencode }}">{{ c.ctg }} <span class="count">{{ c.cnt }}</span></a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+
+                <section class="widget">
+                    <h4 class="widget-title">최근 글</h4>
+                    <ul class="recent-list">
+                        {% for p in sidebar_recent %}
+                        <li>
+                            <a href="{% url 'post_detail' pk=p.pk %}">{{ p.title }}</a>
+                            <span class="recent-date">{{ p.published_date|date:'Y.m.d' }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            </aside>
+            {% endblock %}
         </div>
+
+        <footer class="site-footer">
+            <div class="wrap">&copy; Pennatic Blog</div>
+        </footer>
+        <!-- 공통 확인 창: form에 data-confirm 속성이 있으면 제출 전에 확인 -->
+        <dialog id="confirm_dialog" class="confirm-dialog">
+            <h4 id="confirm_title"></h4>
+            <p id="confirm_msg"></p>
+            <div class="confirm-actions">
+                <button type="button" class="btn btn-default" id="confirm_cancel">취소</button>
+                <button type="button" class="btn btn-danger" id="confirm_ok">삭제</button>
+            </div>
+        </dialog>
+        <script>
+            (function() {
+                const dialog = document.getElementById('confirm_dialog');
+                let pendingForm = null;
+                document.addEventListener('submit', function(e) {
+                    const form = e.target;
+                    if (!form.dataset.confirm) return;
+                    e.preventDefault();
+                    pendingForm = form;
+                    document.getElementById('confirm_title').textContent = form.dataset.confirmTitle || '계속할까요?';
+                    document.getElementById('confirm_msg').textContent = form.dataset.confirm;
+                    dialog.showModal();
+                });
+                document.getElementById('confirm_cancel').addEventListener('click', function() {
+                    pendingForm = null;
+                    dialog.close();
+                });
+                document.getElementById('confirm_ok').addEventListener('click', function() {
+                    dialog.close();
+                    if (pendingForm) pendingForm.submit();  // submit()은 submit 이벤트를 다시 발생시키지 않음
+                });
+            })();
+        </script>
+        {% block script %}{% endblock %}
     </body>
 </html>
-<!-- 검색 폼 -->
-<form id="srchForm" method="get" action="{% url 'post_srch' %}">
-    <input type="hidden" id="kwd" name="kwd" value="{{ kwd|default_if_none:'' }}">
-    <input type="hidden" id="page" name="page" value="{{ page }}">
-</form>
-
-{% block script %}
-<script type='text/javascript'>
-    const page_elements = document.getElementsByClassName("page-link");
-    Array.from(page_elements).forEach(function(element) {
-        element.addEventListener('click', function() {
-            document.getElementById('page').value = this.dataset.page;
-            document.getElementById('srchForm').submit();
-        });
-    });
-    const btn_srch = document.getElementById("btn_srch");
-    btn_srch.addEventListener('click', function() {
-        btnSrchEnt()
-    });
-
-    function btnSrchEnt() {
-        if(document.getElementById('srch_kwd').value.length > 1) {
-            document.getElementById('kwd').value = document.getElementById('srch_kwd').value;
-            document.getElementById('page').value = 1;  // 검색버튼을 클릭할 경우 1페이지부터 조회한다.
-            document.getElementById('srchForm').submit();
-        } else {
-            alert("검색은 두 글자 이상 입력 필수입니다.");
-            return false;
-        }
-    }
-</script>
-{% endblock %}

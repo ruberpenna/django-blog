@@ -1,12 +1,15 @@
 {% extends 'blog/base.html' %}
 
 {% block content %}
-    <h1>댓글 등록 및 수정</h1>
-    <hr>
-    <form method="POST" class="post-form">{% csrf_token %}
-        {{ form.as_p }}
-        <h5>* 등록 후에는 관리자의 승인을 받아야 완전히 게시됩니다.</h5>
-        <a class="btn btn-default" href="javascript:history.back();">취소</a>
-        <button type="submit" class="save btn btn-success">등록</button>
-    </form>
+    <div class="panel-box">
+        <h2 class="section-title">댓글 쓰기</h2>
+        <form method="POST" class="post-form">{% csrf_token %}
+            {{ form.as_p }}
+            <p class="form-note">* 등록 후에는 관리자의 승인을 받아야 완전히 게시됩니다.</p>
+            <div class="form-actions">
+                <a class="btn btn-default" href="javascript:history.back();">취소</a>
+                <button type="submit" class="btn btn-primary">등록</button>
+            </div>
+        </form>
+    </div>
 {% endblock %}
