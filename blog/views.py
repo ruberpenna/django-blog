@@ -27,9 +27,16 @@ def post_list(request):
     lists = paginator.get_page(page)
     return render(request, 'blog/post_list.html', {'posts': posts, 'lists': lists})
 
+# 발행된 글만 조회 (승인 대기/예약 글은 로그인한 사용자만, 그 외에는 404)
+def get_visible_post(request, pk):
+    posts = Post.objects.all()
+    if not request.user.is_authenticated:
+        posts = posts.filter(published_date__lte=timezone.now())
+    return get_object_or_404(posts, pk=pk)
+
 # 글 상세
 def post_detail(request, pk):
-    post = get_object_or_404(Post, pk=pk)
+    post = get_visible_post(request, pk)
     meta = {
         'type': 'article',
         'title': post.title,
@@ -95,7 +102,7 @@ def post_remove(request, pk):
 
 # 댓글 등록페이지
 def add_comment_to_post(request, pk):
-    post = get_object_or_404(Post, pk=pk)
+    post = get_visible_post(request, pk)
     if request.method == "POST":
         form = CommentForm(request.POST)
         if form.is_valid():
