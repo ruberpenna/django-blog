@@ -157,6 +157,32 @@ E:\django_blog\deploy\update.bat
 
 `git pull` → 패키지 설치 → 정적 파일 수집 → DB 마이그레이션 → 서비스 재시작 순서로 진행합니다.
 
+## DB 자동 백업
+
+`deploy\backup_db.ps1`이 DB를 `pg_dump`로 덤프하고 업로드 파일(`media`)을 복사합니다. 기본 저장 위치는 `G:\blog_backups`이고, 30일 지난 DB 덤프는 지웁니다(최소 7개는 유지).
+
+1. PostgreSQL 명령줄 도구 설치 (DB 서버와 같은 15 버전, 서버는 설치하지 않음)
+   ```powershell
+   winget install --id PostgreSQL.PostgreSQL.15 --exact --override "--mode unattended --unattendedmodeui none --disable-components server,pgAdmin,stackbuilder"
+   ```
+2. 수동으로 한 번 실행해서 확인
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File deploy\backup_db.ps1
+   ```
+3. 매일 새벽 4시 자동 실행 등록 (SYSTEM 계정, 로그인 불필요)
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File deploy\register_backup_task.ps1
+   ```
+
+저장 위치를 바꾸려면 `backup_db.ps1` 맨 위의 `$BackupDir`를 수정합니다. 결과는 `logs\backup.log`에 남습니다.
+
+복원 (주의: DB 내용을 백업 시점으로 덮어씀):
+
+```powershell
+$env:PGPASSWORD = "<DB 비밀번호>"
+& "C:\Program Files\PostgreSQL\15\bin\pg_restore.exe" --host 192.168.0.10 --username postgres --dbname postgres --clean --if-exists --no-owner G:\blog_backups\db\<파일명>.dump
+```
+
 ## 서비스 관리
 
 ```powershell
