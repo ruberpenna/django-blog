@@ -1,9 +1,16 @@
-# 블로그 앞단 웹서버 (HTTPS 자동 발급, 정적/업로드 파일 제공, Django로 전달)
-# 도메인과 프로젝트 경로는 서비스 환경변수로 넣음 (deploy\README.md 참고)
-#   BLOG_DOMAIN = myblog.duckdns.org
-#   BLOG_ROOT   = E:/django_blog   (슬래시 / 사용)
+# 블로그 앞단 웹서버 (정적/업로드 파일 제공, Django로 전달)
+# HTTPS는 앞단의 Nginx Proxy Manager(NPM)가 처리하고, 이 PC의 8123 포트로 HTTP 전달
+# 프로젝트 경로는 서비스 환경변수로 넣음 (deploy\README.md 참고)
+#   BLOG_ROOT = E:/django_blog   (슬래시 / 사용)
 
-{$BLOG_DOMAIN} {
+{
+	servers {
+		# NPM이 보낸 X-Forwarded-Proto(https)를 Django까지 전달
+		trusted_proxies static private_ranges
+	}
+}
+
+http://:8123 {
 	encode gzip
 
 	handle_path /static/* {
@@ -17,6 +24,6 @@
 	}
 
 	handle {
-		reverse_proxy 127.0.0.1:8123
+		reverse_proxy 127.0.0.1:8000
 	}
 }

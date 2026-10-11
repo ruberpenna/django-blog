@@ -3,8 +3,10 @@
 블로그를 상시 실행할 PC에서 진행합니다. 구성은 아래와 같습니다.
 
 ```
-인터넷 → 공유기(80/443) → Caddy(HTTPS, /static, /media) → Waitress(127.0.0.1:8123, Django) → PostgreSQL(DB 서버 PC, 내부망)
+인터넷 → 공유기(80/443) → Nginx Proxy Manager(HTTPS, 다른 PC) → Caddy(이 PC :8123, /static, /media) → Waitress(127.0.0.1:8000, Django) → PostgreSQL(DB 서버 PC, 내부망)
 ```
+
+HTTPS 인증서는 NPM이 발급·관리합니다. NPM의 Proxy Host에서 블로그 도메인을 `http://<이 PC 내부 IP>:8123`으로 전달하도록 설정합니다.
 
 아래 예시의 값은 실제 값으로 바꿔서 입력하세요.
 
@@ -44,7 +46,7 @@ myvenv\Scripts\python.exe manage.py collectstatic --noinput
 deploy\run_waitress.bat
 ```
 
-브라우저에서 `http://localhost:8123`을 열어 글 목록이 나오면 정상입니다. 이 단계에서는 CSS가 빠져 보이는 게 정상이고, Caddy를 붙이면 해결됩니다. 확인한 뒤 `Ctrl+C`로 종료합니다.
+브라우저에서 `http://localhost:8000`을 열어 글 목록이 나오면 정상입니다. 이 단계에서는 CSS가 빠져 보이는 게 정상이고, Caddy를 붙이면 해결됩니다. 확인한 뒤 `Ctrl+C`로 종료합니다.
 
 ## 4. 도메인 (DuckDNS, 무료)
 
@@ -55,11 +57,12 @@ deploy\run_waitress.bat
 ## 5. 네트워크
 
 1. **이 PC 내부 IP 고정**: 공유기 관리 페이지의 DHCP 고정 할당(예약)에 이 PC를 등록합니다.
-2. **공유기 포트포워딩**: 외부 80 → 이 PC 80, 외부 443 → 이 PC 443
-3. **Windows 방화벽 허용**
+2. **NPM 설정**: 공유기의 80/443은 NPM이 있는 PC로 포트포워딩되어 있어야 합니다. NPM에서 Proxy Host를 추가합니다.
+   - Domain: 블로그 도메인 / Scheme: `http` / Forward IP: 이 PC 내부 IP / Port: `8123`
+   - SSL 탭에서 Let's Encrypt 인증서 발급, Force SSL 켜기
+3. **Windows 방화벽 허용** (내부망에서 오는 8123만 허용)
    ```powershell
-   New-NetFirewallRule -DisplayName "Blog HTTP"  -Direction Inbound -Protocol TCP -LocalPort 80  -Action Allow
-   New-NetFirewallRule -DisplayName "Blog HTTPS" -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow
+   New-NetFirewallRule -DisplayName "Blog 8123" -Direction Inbound -Protocol TCP -LocalPort 8123 -RemoteAddress LocalSubnet -Action Allow
    ```
 4. **절전 끄기** (전원 연결 시 절전·최대 절전 안 함)
    ```powershell
@@ -94,7 +97,7 @@ Copy-Item (Get-Command caddy).Source C:\caddy\caddy.exe
 New-Item -ItemType Directory -Force E:\django_blog\logs
 
 # Django (Waitress)
-nssm install blog-waitress "E:\django_blog\myvenv\Scripts\waitress-serve.exe" "--listen=127.0.0.1:8123 --threads=8 --trusted-proxy=127.0.0.1 --trusted-proxy-headers=x-forwarded-proto mysite.wsgi:application"
+nssm install blog-waitress "E:\django_blog\myvenv\Scripts\waitress-serve.exe" "--listen=127.0.0.1:8000 --threads=8 --trusted-proxy=127.0.0.1 --trusted-proxy-headers=x-forwarded-proto mysite.wsgi:application"
 nssm set blog-waitress AppDirectory "E:\django_blog"
 nssm set blog-waitress AppStdout "E:\django_blog\logs\waitress.log"
 nssm set blog-waitress AppStderr "E:\django_blog\logs\waitress.log"
@@ -104,7 +107,7 @@ nssm start blog-waitress
 # Caddy
 nssm install blog-caddy "C:\caddy\caddy.exe" "run --config E:\django_blog\deploy\Caddyfile"
 nssm set blog-caddy AppDirectory "C:\caddy"
-nssm set blog-caddy AppEnvironmentExtra BLOG_DOMAIN=myblog.duckdns.org BLOG_ROOT=E:/django_blog
+nssm set blog-caddy AppEnvironmentExtra BLOG_ROOT=E:/django_blog
 nssm set blog-caddy AppStdout "E:\django_blog\logs\caddy.log"
 nssm set blog-caddy AppStderr "E:\django_blog\logs\caddy.log"
 nssm set blog-caddy Start SERVICE_AUTO_START
@@ -120,7 +123,7 @@ nssm status blog-waitress
 nssm status blog-caddy
 ```
 
-HTTPS 인증서는 Caddy가 처음 실행될 때 자동으로 발급합니다. 이때 포트포워딩(80/443)과 도메인 IP가 맞아야 하고, 1~2분 정도 걸릴 수 있습니다. 문제가 생기면 `logs\caddy.log`를 확인하세요.
+Caddy는 HTTPS 없이 `:8123`에서 HTTP만 받습니다(인증서는 NPM 담당). 문제가 생기면 `logs\caddy.log`, `logs\waitress.log`를 확인하세요.
 
 ## 8. 확인
 
