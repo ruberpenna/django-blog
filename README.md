@@ -1,4 +1,6 @@
 # django_blog
-2017~2022 local worked
+https://django.pennatic.info/
 <br/><br/>
-2023.04.29 first commit
+2017~2022 => Worked locally
+<br/><br/>
+2023.04.29 => github first commit
