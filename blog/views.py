@@ -6,6 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import HttpResponse
+from django.views.decorators.cache import cache_page
 import logging
 
 # 로거 선언
@@ -28,7 +30,14 @@ def post_list(request):
 # 글 상세
 def post_detail(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    return render(request, 'blog/post_detail.html', {'post': post})
+    meta = {
+        'type': 'article',
+        'title': post.title,
+        'description': post.summary(),
+        'image': post.first_image(),
+        'noindex': not post.published_date,  # 승인 대기 글은 검색엔진 제외
+    }
+    return render(request, 'blog/post_detail.html', {'post': post, 'meta': meta})
 
 # 글 등록
 @login_required
@@ -131,3 +140,16 @@ def post_srch(request):
     lists = paginator.get_page(page)
     context = {'lists': lists, 'page': page, 'kwd': kwd, 'ctg': ctg}
     return render(request, 'blog/post_list.html', context)
+# 검색엔진 수집 규칙
+@cache_page(60 * 60)
+def robots_txt(request):
+    lines = [
+        'User-agent: *',
+        'Disallow: /admin/',
+        'Disallow: /drafts/',
+        'Disallow: /summernote/',
+        'Disallow: /srch/?kwd=',
+        '',
+        'Sitemap: ' + request.build_absolute_uri('/sitemap.xml'),
+    ]
+    return HttpResponse('\n'.join(lines) + '\n', content_type='text/plain')

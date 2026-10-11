@@ -5,6 +5,20 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}Pennatic Blog{% endblock %}</title>
+        <!-- 검색엔진 / 공유 미리보기 (값은 뷰의 meta 로 덮어씀) -->
+        {% with site_url=request.scheme|add:'://'|add:request.get_host %}
+        <meta name="description" content="{{ meta.description|default:'개발하며 정리한 글, 소스, 백업 기록을 모아 둔 Pennatic 블로그' }}">
+        <link rel="canonical" href="{{ site_url }}{% if ctg and not kwd %}{{ request.path }}?ctg={{ ctg|urlencode }}{% else %}{{ request.path }}{% endif %}">
+        {% if meta.noindex or kwd %}<meta name="robots" content="noindex">{% endif %}
+        <meta property="og:site_name" content="Pennatic Blog">
+        <meta property="og:type" content="{{ meta.type|default:'website' }}">
+        <meta property="og:title" content="{{ meta.title|default:'Pennatic Blog' }}">
+        <meta property="og:description" content="{{ meta.description|default:'개발하며 정리한 글, 소스, 백업 기록을 모아 둔 Pennatic 블로그' }}">
+        <meta property="og:url" content="{{ site_url }}{% if ctg and not kwd %}{{ request.path }}?ctg={{ ctg|urlencode }}{% else %}{{ request.path }}{% endif %}">
+        <meta property="og:image" content="{% if meta.image|slice:':4' == 'http' %}{{ meta.image }}{% elif meta.image %}{{ site_url }}{{ meta.image }}{% else %}{{ site_url }}{% static 'og-image.png' %}{% endif %}">
+        <meta property="og:locale" content="ko_KR">
+        <meta name="twitter:card" content="summary_large_image">
+        {% endwith %}
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
