@@ -26,6 +26,12 @@ def get_env(name, default=None):
         raise ImproperlyConfigured(f'환경변수 {name} 가 설정되지 않았습니다. .env 파일을 확인하세요.')
     return value
 
+def get_env_bool(name, default=False):
+    return os.environ.get(name, str(default)).strip().lower() in ('1', 'true', 'yes', 'on')
+
+def get_env_list(name, default=''):
+    return [v.strip() for v in os.environ.get(name, default).split(',') if v.strip()]
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -34,9 +40,20 @@ def get_env(name, default=None):
 SECRET_KEY = get_env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# 운영 서버에서는 .env 에 DJANGO_DEBUG=False
+DEBUG = get_env_bool('DJANGO_DEBUG', False)
 
-ALLOWED_HOSTS = ['127.0.0.1', '*']
+# 접속 허용 도메인 (쉼표로 구분) 예: myblog.duckdns.org,localhost
+ALLOWED_HOSTS = get_env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
+
+# HTTPS 프록시(Caddy) 뒤에서 운영할 때
+if get_env_bool('DJANGO_HTTPS', False):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
 
 
 # Application definition

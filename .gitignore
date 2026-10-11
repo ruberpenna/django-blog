@@ -5,6 +5,10 @@
 __pycache__/
 *.pyc
 
+# collectstatic 결과물, 서버 로그
+static/
+logs/
+
 # 가상환경 (PC마다 따로 생성 - requirements.txt 참고)
 myvenv/
 venv/

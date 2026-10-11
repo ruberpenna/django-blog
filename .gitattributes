@@ -1,0 +1,2 @@
+# Windows 배치 파일은 CRLF 줄바꿈 유지 (LF면 goto/라벨이 오동작)
+*.bat text eol=crlf

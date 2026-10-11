@@ -1,0 +1,22 @@
+# 블로그 앞단 웹서버 (HTTPS 자동 발급, 정적/업로드 파일 제공, Django로 전달)
+# 도메인과 프로젝트 경로는 서비스 환경변수로 넣음 (deploy\README.md 참고)
+#   BLOG_DOMAIN = myblog.duckdns.org
+#   BLOG_ROOT   = E:/django_blog   (슬래시 / 사용)
+
+{$BLOG_DOMAIN} {
+	encode gzip
+
+	handle_path /static/* {
+		root * {$BLOG_ROOT}/static
+		file_server
+	}
+
+	handle_path /media/* {
+		root * {$BLOG_ROOT}/media
+		file_server
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8000
+	}
+}
