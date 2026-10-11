@@ -231,6 +231,34 @@ a.badge-ctg:hover { background: var(--accent); color: #fff; }
     color: #fff;
 }
 
+.search-scope {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 10px 0 0;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-sub);
+    cursor: pointer;
+}
+.search-scope input { margin: 0; accent-color: var(--accent); }
+
+/* 좁은 화면용 카테고리 바 (가로 스크롤) */
+.cat-bar { display: none; }
+.cat-bar a {
+    flex: none;
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 14px;
+    white-space: nowrap;
+}
+.cat-bar a .count { color: var(--text-sub); font-size: 12px; margin-left: 2px; }
+.cat-bar a.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cat-bar a.active .count { color: #fff; opacity: .85; }
+
 .cat-list, .recent-list { list-style: none; margin: 0; padding: 0; }
 .cat-list li a {
     display: flex;
@@ -464,6 +492,15 @@ a.badge-ctg:hover { background: var(--accent); color: #fff; }
 @media (max-width: 900px) {
     .layout { grid-template-columns: minmax(0, 1fr); }
     .side-col { position: static; }
+    .cat-bar {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        margin: 0 0 20px;
+        padding-bottom: 4px;
+        scrollbar-width: none;
+    }
+    .cat-bar::-webkit-scrollbar { display: none; }
 }
 
 @media (max-width: 600px) {

@@ -1,6 +1,14 @@
 {% extends 'blog/base.html' %}
 
 {% block content %}
+    <!-- 카테고리 바 (사이드바가 아래로 밀리는 좁은 화면에서만 표시) -->
+    <nav class="cat-bar" aria-label="카테고리">
+        <a href="/" class="{% if not ctg %}active{% endif %}">전체 <span class="count">{{ sidebar_total }}</span></a>
+        {% for c in sidebar_categories %}
+            <a href="{% url 'post_srch' %}?ctg={{ c.ctg|urlencode }}" class="{% if ctg == c.ctg %}active{% endif %}">{{ c.ctg }} <span class="count">{{ c.cnt }}</span></a>
+        {% endfor %}
+    </nav>
+
     {% if kwd or ctg %}
         <div class="list-heading">
             {% if ctg %}<span class="badge-ctg">{{ ctg }}</span>{% endif %}

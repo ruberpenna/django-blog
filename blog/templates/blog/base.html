@@ -8,7 +8,7 @@
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="{% static 'css/blog.css' %}?v=5">
+        <link rel="stylesheet" href="{% static 'css/blog.css' %}?v=6">
         <link rel="icon" href="{% static 'favicon.ico' %}?v=2">
         <link rel="apple-touch-icon" href="{% static 'apple-touch-icon.png' %}">
     </head>
@@ -41,11 +41,17 @@
             {% block sidebar %}
             <aside class="side-col">
                 <section class="widget">
-                    <form class="search-box" method="get" action="{% url 'post_srch' %}">
+                    <form class="search-box" id="search_form" method="get" action="{% url 'post_srch' %}">
                         <input type="text" name="kwd" value="{{ kwd|default_if_none:'' }}" placeholder="제목+내용 검색"
                                minlength="2" required title="검색은 두 글자 이상 입력 필수입니다.">
                         <button type="submit" aria-label="검색"><span class="glyphicon glyphicon-search"></span></button>
                     </form>
+                    {% if ctg %}
+                    <label class="search-scope">
+                        <input type="checkbox" name="ctg" value="{{ ctg }}" form="search_form" checked>
+                        <span class="badge-ctg">{{ ctg }}</span> 안에서만 검색
+                    </label>
+                    {% endif %}
                 </section>
 
                 <section class="widget">
