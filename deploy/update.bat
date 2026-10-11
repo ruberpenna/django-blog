@@ -8,6 +8,7 @@ myvenv\Scripts\python.exe -m pip install -r requirements.txt || goto :error
 myvenv\Scripts\python.exe manage.py collectstatic --noinput || goto :error
 myvenv\Scripts\python.exe manage.py migrate || goto :error
 nssm restart blog-waitress || goto :error
+nssm restart blog-caddy || goto :error
 echo.
 echo 업데이트 완료
 exit /b 0
