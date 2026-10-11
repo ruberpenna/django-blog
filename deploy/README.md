@@ -3,7 +3,7 @@
 블로그를 상시 실행할 PC에서 진행합니다. 구성은 아래와 같습니다.
 
 ```
-인터넷 → 공유기(80/443) → Caddy(HTTPS, /static, /media) → Waitress(127.0.0.1:8000, Django) → PostgreSQL(DB 서버 PC, 내부망)
+인터넷 → 공유기(80/443) → Caddy(HTTPS, /static, /media) → Waitress(127.0.0.1:8123, Django) → PostgreSQL(DB 서버 PC, 내부망)
 ```
 
 아래 예시의 값은 실제 값으로 바꿔서 입력하세요.
@@ -44,7 +44,7 @@ myvenv\Scripts\python.exe manage.py collectstatic --noinput
 deploy\run_waitress.bat
 ```
 
-브라우저에서 `http://localhost:8000`을 열어 글 목록이 나오면 정상입니다. 이 단계에서는 CSS가 빠져 보이는 게 정상이고, Caddy를 붙이면 해결됩니다. 확인한 뒤 `Ctrl+C`로 종료합니다.
+브라우저에서 `http://localhost:8123`을 열어 글 목록이 나오면 정상입니다. 이 단계에서는 CSS가 빠져 보이는 게 정상이고, Caddy를 붙이면 해결됩니다. 확인한 뒤 `Ctrl+C`로 종료합니다.
 
 ## 4. 도메인 (DuckDNS, 무료)
 
@@ -94,7 +94,7 @@ Copy-Item (Get-Command caddy).Source C:\caddy\caddy.exe
 New-Item -ItemType Directory -Force E:\django_blog\logs
 
 # Django (Waitress)
-nssm install blog-waitress "E:\django_blog\myvenv\Scripts\waitress-serve.exe" "--listen=127.0.0.1:8000 --threads=8 --trusted-proxy=127.0.0.1 --trusted-proxy-headers=x-forwarded-proto mysite.wsgi:application"
+nssm install blog-waitress "E:\django_blog\myvenv\Scripts\waitress-serve.exe" "--listen=127.0.0.1:8123 --threads=8 --trusted-proxy=127.0.0.1 --trusted-proxy-headers=x-forwarded-proto mysite.wsgi:application"
 nssm set blog-waitress AppDirectory "E:\django_blog"
 nssm set blog-waitress AppStdout "E:\django_blog\logs\waitress.log"
 nssm set blog-waitress AppStderr "E:\django_blog\logs\waitress.log"
