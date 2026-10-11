@@ -51,9 +51,10 @@ if get_env_bool('DJANGO_HTTPS', False):
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # Django 4.0+ 는 POST 요청의 Origin 을 검사함
+    CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in ALLOWED_HOSTS]
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_BROWSER_XSS_FILTER = True
 
 
 # Application definition
@@ -68,7 +69,6 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'blog',
     'django_summernote',
-    'bootstrap4',
 ]
 
 MIDDLEWARE = [
@@ -169,9 +169,10 @@ TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
+
+# 기존 테이블과 같은 정수형 id 유지 (BigAutoField 로 바꾸는 마이그레이션 방지)
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 
 # Static files (CSS, JavaScript, Images)
@@ -180,7 +181,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 
+LOGIN_URL = '/admin/login/'  # @login_required 페이지 접근 시 관리자 로그인으로 이동
 LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')

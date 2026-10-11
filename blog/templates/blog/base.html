@@ -22,7 +22,7 @@
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="{% static 'css/blog.css' %}?v=6">
+        <link rel="stylesheet" href="{% static 'css/blog.css' %}?v=7">
         <link rel="icon" href="{% static 'favicon.ico' %}?v=2">
         <link rel="apple-touch-icon" href="{% static 'apple-touch-icon.png' %}">
     </head>
@@ -36,7 +36,10 @@
                         <a href="{% url 'post_new' %}" title="글쓰기"><span class="glyphicon glyphicon-pencil"></span><em>글쓰기</em></a>
                         <a href="{% url 'post_draft_list' %}" title="승인 대기"><span class="glyphicon glyphicon-inbox"></span><em>승인대기</em></a>
                         <a href="/admin" title="관리자"><span class="glyphicon glyphicon-cog"></span><em>관리자</em></a>
-                        <a href="/admin/logout" title="로그아웃"><span class="glyphicon glyphicon-log-out"></span><em>로그아웃</em></a>
+                        <!-- Django 5.0+ 로그아웃은 POST 만 허용 -->
+                        <form method="post" action="{% url 'admin:logout' %}" class="nav-form">{% csrf_token %}
+                            <button type="submit" title="로그아웃"><span class="glyphicon glyphicon-log-out"></span><em>로그아웃</em></button>
+                        </form>
                     {% else %}
                         <a href="/admin" title="로그인"><span class="glyphicon glyphicon-log-in"></span><em>로그인</em></a>
                     {% endif %}

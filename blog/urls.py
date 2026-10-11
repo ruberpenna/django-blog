@@ -1,5 +1,4 @@
 from django.urls import path, include
-from django.conf.urls import url
 from django.conf.urls.static import static
 from django.conf import settings
 from . import views
@@ -12,12 +11,12 @@ urlpatterns = [
     path('post/<int:pk>/edit/', views.post_edit, name='post_edit'), # 글 수정
     path('summernote/', include('django_summernote.urls')), # 에디터
 
-    url(r'^drafts/$', views.post_draft_list, name='post_draft_list'), # 임시글 목록
-    url(r'^post/(?P<pk>\d+)/publish/$', views.post_publish, name='post_publish'), # 임시글 승인
-    url(r'^post/(?P<pk>\d+)/comment/$', views.add_comment_to_post, name='add_comment_to_post'), # 댓글 작성
-    url(r'^post/(?P<pk>\d+)/remove/$', views.post_remove, name='post_remove'), # 글 삭제
-    url(r'^comment/(?P<pk>\d+)/approve/$', views.comment_approve, name='comment_approve'), # 댓글 승인
-	url(r'^comment/(?P<pk>\d+)/remove/$', views.comment_remove, name='comment_remove'), # 댓글 삭제
+    path('drafts/', views.post_draft_list, name='post_draft_list'), # 임시글 목록
+    path('post/<int:pk>/publish/', views.post_publish, name='post_publish'), # 임시글 승인
+    path('post/<int:pk>/comment/', views.add_comment_to_post, name='add_comment_to_post'), # 댓글 작성
+    path('post/<int:pk>/remove/', views.post_remove, name='post_remove'), # 글 삭제
+    path('comment/<int:pk>/approve/', views.comment_approve, name='comment_approve'), # 댓글 승인
+    path('comment/<int:pk>/remove/', views.comment_remove, name='comment_remove'), # 댓글 삭제
 ]
 
 urlpatterns += \

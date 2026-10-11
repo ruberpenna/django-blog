@@ -22,9 +22,13 @@ HTTPS 인증서는 NPM이 발급·관리합니다. NPM의 Proxy Host에서 블�
 
 ## 1. 코드와 패키지
 
+Python 3.10 이상이 필요합니다 (Django 5.2). 3.12 기준으로 설명합니다.
+
 ```powershell
+winget install --id Python.Python.3.12 --exact
 cd E:\django_blog
 git pull
+py -3.12 -m venv myvenv
 myvenv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
