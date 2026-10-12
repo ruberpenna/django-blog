@@ -123,17 +123,17 @@ def get_client_ip(request):
 COMMENT_RATE_LIMIT = 3          # 같은 IP 에서
 COMMENT_RATE_WINDOW = 60 * 10   # 10분에 3개까지
 
-# 작성 횟수 제한을 넘었으면 True (넘지 않았으면 이번 작성을 횟수에 더함)
+# 이번 작성을 횟수에 더하고, 제한을 넘었으면 True
+# (incr 결과로 판정해야 동시 요청이 같은 값을 읽고 함께 통과하지 않음)
 def comment_rate_limited(request):
     key = 'comment-rate:' + get_client_ip(request)
     cache.add(key, 0, COMMENT_RATE_WINDOW)
-    if cache.get(key, 0) >= COMMENT_RATE_LIMIT:
-        return True
     try:
-        cache.incr(key)
-    except ValueError:  # 그 사이 만료된 경우
+        count = cache.incr(key)
+    except ValueError:  # add 와 incr 사이에 만료된 경우
         cache.set(key, 1, COMMENT_RATE_WINDOW)
-    return False
+        count = 1
+    return count > COMMENT_RATE_LIMIT
 
 # 댓글 등록페이지
 def add_comment_to_post(request, pk):
@@ -147,12 +147,14 @@ def add_comment_to_post(request, pk):
                 return redirect('post_detail', pk=post.pk)
             if comment_rate_limited(request):
                 form.add_error(None, '짧은 시간에 댓글을 너무 많이 등록했습니다. 10분 뒤에 다시 시도해 주세요.')
+                form.renew_timestamp()
                 return render(request, 'blog/add_comment_to_post.html', {'form': form}, status=429)
             comment = form.save(commit=False)
             comment.post = post
             comment.save()
             notify_new_comment(request, comment)
             return redirect('post_detail', pk=post.pk)
+        form.renew_timestamp()
     else:
         form = CommentForm()
     return render(request, 'blog/add_comment_to_post.html', {'form': form})

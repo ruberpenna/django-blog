@@ -15,7 +15,7 @@ from .models import Post
 def comment_data(author='방문자', text='좋은 글이네요', seconds_ago=10, **extra):
     """정상 사용자가 폼을 열고 seconds_ago 초 뒤 제출한 댓글 데이터"""
     import time
-    data = {'author': author, 'text': text, 'website': '',
+    data = {'author': author, 'text': text, 'leave_blank': '',
             'ts': signing.dumps(time.time() - seconds_ago, salt='comment-form')}
     data.update(extra)
     return data
@@ -120,7 +120,8 @@ class CommentSpamTests(TestCase):
 
     def test_form_has_hidden_fields(self):
         res = self.client.get(self.url)
-        self.assertContains(res, 'name="website"')
+        self.assertContains(res, 'name="leave_blank"')
+        self.assertNotContains(res, 'name="website"')
         self.assertContains(res, 'name="ts"')
 
     def test_normal_comment_saved(self):
@@ -129,7 +130,7 @@ class CommentSpamTests(TestCase):
         self.assertEqual(self.post.comments.count(), 1)
 
     def test_honeypot_silently_dropped(self):
-        res = self.post_comment(comment_data(website='http://spam.example'))
+        res = self.post_comment(comment_data(leave_blank='http://spam.example'))
         self.assertEqual(res.status_code, 302)  # 봇에게는 성공처럼 보임
         self.assertEqual(self.post.comments.count(), 0)
 
@@ -175,3 +176,34 @@ class CommentSpamTests(TestCase):
         self.assertEqual(res.status_code, 429)
         res = self.client.post(self.url, comment_data(), HTTP_X_REAL_IP='1.1.1.1')
         self.assertEqual(res.status_code, 302)
+
+    def test_www_link_counted_once(self):
+        # https://www. 형태도 링크 1개로 셈 (2개까지 허용)
+        text = 'https://www.a.example 와 https://www.b.example 참고'
+        self.assertEqual(self.post_comment(comment_data(text=text)).status_code, 302)
+        text += ' www.c.example'
+        self.assertContains(self.post_comment(comment_data(text=text)), '링크는 2개까지')
+
+    def test_error_rerender_gets_fresh_timestamp(self):
+        # 만료/위조 ts 로 실패해도 다시 그린 폼에는 새 ts 가 들어가서, 그대로 재제출하면 성공
+        import re as _re, time as _time
+        past = _time.time() - 60 * 60 * 25
+        with mock.patch('django.core.signing.time.time', return_value=past):  # 25시간 전에 연 폼
+            expired = signing.dumps(past, salt='comment-form')
+        res = self.post_comment(comment_data(ts=expired))
+        self.assertContains(res, '새로고침')
+        new_ts = _re.search(r'name="ts" value="([^"]+)"', res.content.decode()).group(1)
+        self.assertNotEqual(new_ts, expired)
+        # 사람이 다시 누르기까지 걸리는 시간만큼 지난 것처럼 처리
+        with mock.patch('blog.forms.time.time', return_value=_time.time() + 5):
+            res = self.post_comment(comment_data(ts=new_ts))
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(self.post.comments.count(), 1)
+
+    def test_rate_limit_counts_atomically(self):
+        # 판정은 incr 결과로: 4번째부터 차단되고 횟수는 계속 증가
+        for i in range(3):
+            self.assertEqual(self.post_comment(comment_data(text=f'댓글 {i}')).status_code, 302)
+        for _ in range(2):
+            self.assertEqual(self.post_comment(comment_data()).status_code, 429)
+        self.assertEqual(cache.get('comment-rate:8.8.4.4'), 5)

@@ -5,8 +5,9 @@
 
 {
 	servers {
-		# NPM이 보낸 X-Forwarded-Proto(https)를 Django까지 전달
-		trusted_proxies static private_ranges
+		# NPM이 보낸 X-Forwarded-Proto(https), X-Forwarded-For 를 신뢰
+		# NPM 서버 한 대만 신뢰 (내부망 전체를 신뢰하면 같은 공유기의 PC가 IP를 위조할 수 있음)
+		trusted_proxies static 192.168.0.33
 		# 방문자 IP는 X-Forwarded-For 오른쪽부터 신뢰할 수 없는 첫 주소 (왼쪽 값은 위조 가능)
 		trusted_proxies_strict
 	}

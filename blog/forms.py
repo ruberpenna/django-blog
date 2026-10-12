@@ -27,10 +27,12 @@ class CommentForm(forms.ModelForm):
     MIN_SECONDS = 3        # 폼을 연 뒤 이 시간 안에 제출하면 봇으로 간주
     MAX_AGE = 60 * 60 * 24  # 폼 유효 시간
     MAX_LINKS = 2
+    LINK_RE = re.compile(r'(?:https?://|www\.)\S+', re.I)  # https://www.a.com 도 링크 1개로 셈
 
     # 사람에게는 보이지 않는 칸. 봇이 채우면 저장하지 않음
-    website = forms.CharField(required=False, label='웹사이트',
-                              widget=forms.TextInput(attrs={'autocomplete': 'off', 'tabindex': '-1'}))
+    # (website, url 같은 이름은 브라우저 자동완성이 채울 수 있어 피함)
+    leave_blank = forms.CharField(required=False, label='이 칸은 비워 두세요',
+                                  widget=forms.TextInput(attrs={'autocomplete': 'off', 'tabindex': '-1'}))
     # 폼을 연 시각 (서명해서 위조 방지)
     ts = forms.CharField(required=False, widget=forms.HiddenInput)
 
@@ -47,17 +49,26 @@ class CommentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.is_bot = False
         if not self.is_bound:
-            self.initial['ts'] = signing.dumps(time.time(), salt='comment-form')
+            self.initial['ts'] = self.new_timestamp()
+
+    @staticmethod
+    def new_timestamp():
+        return signing.dumps(time.time(), salt='comment-form')
+
+    def renew_timestamp(self):
+        """오류로 폼을 다시 보여줄 때 새 시각을 넣음 (만료된 값을 다시 보내 계속 실패하지 않게)"""
+        self.data = self.data.copy()
+        self.data['ts'] = self.new_timestamp()
 
     def clean_text(self):
         text = self.cleaned_data['text']
-        if len(re.findall(r'https?://|www\.', text, re.I)) > self.MAX_LINKS:
+        if len(self.LINK_RE.findall(text)) > self.MAX_LINKS:
             raise forms.ValidationError(f'링크는 {self.MAX_LINKS}개까지만 넣을 수 있습니다.')
         return text
 
     def clean(self):
         cleaned = super().clean()
-        if cleaned.get('website'):
+        if cleaned.get('leave_blank'):
             self.is_bot = True
             return cleaned
         try:
