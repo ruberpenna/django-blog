@@ -7,6 +7,8 @@
 	servers {
 		# NPM이 보낸 X-Forwarded-Proto(https)를 Django까지 전달
 		trusted_proxies static private_ranges
+		# 방문자 IP는 X-Forwarded-For 오른쪽부터 신뢰할 수 없는 첫 주소 (왼쪽 값은 위조 가능)
+		trusted_proxies_strict
 	}
 }
 
@@ -24,6 +26,9 @@ http://:8123 {
 	}
 
 	handle {
-		reverse_proxy 127.0.0.1:8000
+		reverse_proxy 127.0.0.1:8000 {
+			# Waitress 는 X-Forwarded-For 를 지우므로 실제 방문자 IP를 별도 헤더로 전달 (댓글 작성 횟수 제한용)
+			header_up X-Real-IP {client_ip}
+		}
 	}
 }

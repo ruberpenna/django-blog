@@ -504,6 +504,9 @@ a.badge-ctg:hover { background: var(--accent); color: #fff; }
     margin-top: 6px;
 }
 .form-error ul { margin: 0 0 12px; padding-left: 18px; }
+.post-form .field-error { display: block; }
+/* 스팸 방지 숨김 칸 (display:none 은 일부 봇이 건너뛰므로 화면 밖으로 이동) */
+.hp-field { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 
 .editor-actions {
     position: sticky;

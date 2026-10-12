@@ -1,4 +1,8 @@
+import re
+import time
+
 from django import forms
+from django.core import signing
 from .models import Post, Comment
 from django_summernote.widgets import SummernoteWidget
 import logging
@@ -18,8 +22,18 @@ class PostForm(forms.ModelForm):
         	'text': SummernoteWidget(attrs={'summernote': {'width': '100%', 'height': '520px'}}),
         }
 
-# 댓글 폼
+# 댓글 폼 (스팸 방지: 숨김 입력칸, 작성 시간 검사, 링크 개수 제한)
 class CommentForm(forms.ModelForm):
+    MIN_SECONDS = 3        # 폼을 연 뒤 이 시간 안에 제출하면 봇으로 간주
+    MAX_AGE = 60 * 60 * 24  # 폼 유효 시간
+    MAX_LINKS = 2
+
+    # 사람에게는 보이지 않는 칸. 봇이 채우면 저장하지 않음
+    website = forms.CharField(required=False, label='웹사이트',
+                              widget=forms.TextInput(attrs={'autocomplete': 'off', 'tabindex': '-1'}))
+    # 폼을 연 시각 (서명해서 위조 방지)
+    ts = forms.CharField(required=False, widget=forms.HiddenInput)
+
     class Meta:
         model = Comment
         fields = ('author', 'text')
@@ -28,3 +42,28 @@ class CommentForm(forms.ModelForm):
         	'author': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '작성자', 'maxlength': '20'}),
         	'text': forms.Textarea(attrs={'class': 'form-control', 'placeholder': '내용', 'maxlength': '300'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.is_bot = False
+        if not self.is_bound:
+            self.initial['ts'] = signing.dumps(time.time(), salt='comment-form')
+
+    def clean_text(self):
+        text = self.cleaned_data['text']
+        if len(re.findall(r'https?://|www\.', text, re.I)) > self.MAX_LINKS:
+            raise forms.ValidationError(f'링크는 {self.MAX_LINKS}개까지만 넣을 수 있습니다.')
+        return text
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('website'):
+            self.is_bot = True
+            return cleaned
+        try:
+            opened = signing.loads(cleaned.get('ts') or '', salt='comment-form', max_age=self.MAX_AGE)
+        except signing.BadSignature:  # 없음, 위조, 만료 (SignatureExpired 포함)
+            raise forms.ValidationError('페이지를 새로고침한 뒤 다시 등록해 주세요.')
+        if time.time() - opened < self.MIN_SECONDS:
+            raise forms.ValidationError('너무 빨리 등록했습니다. 잠시 후 다시 시도해 주세요.')
+        return cleaned

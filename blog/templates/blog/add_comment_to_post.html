@@ -4,7 +4,16 @@
     <div class="panel-box">
         <h2 class="section-title">댓글 쓰기</h2>
         <form method="POST" class="post-form">{% csrf_token %}
-            {{ form.as_p }}
+            {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form.visible_fields %}
+                {% if field.name == 'website' %}
+                    <!-- 스팸 방지용 숨김 칸: 비워 두세요 -->
+                    <div class="hp-field" aria-hidden="true">{{ field.label_tag }} {{ field }}</div>
+                {% else %}
+                    <p>{{ field.label_tag }} {{ field }}{% if field.errors %}<span class="field-error">{{ field.errors|join:' ' }}</span>{% endif %}</p>
+                {% endif %}
+            {% endfor %}
+            {% for field in form.hidden_fields %}{{ field }}{% endfor %}
             <p class="form-note">* 등록 후에는 관리자의 승인을 받아야 완전히 게시됩니다.</p>
             <div class="form-actions">
                 <a class="btn btn-default" href="javascript:history.back();">취소</a>
