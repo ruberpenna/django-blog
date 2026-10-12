@@ -191,6 +191,8 @@ E:\django_blog\deploy\update.bat
 
 저장 위치를 바꾸려면 `backup_db.ps1` 맨 위의 `$BackupDir`를 수정합니다. 결과는 `logs\backup.log`에 남습니다.
 
+백업이 끝나면 `$MirrorDir`(기본 `D:\OneDrive\DEV\django_blog_backup\auto`)에도 같은 내용을 복사합니다. OneDrive 폴더로 지정하면 클라우드에 사본이 생깁니다. DB 덤프는 정리 결과까지 똑같이 맞추고, 업로드 파일은 원본에서 지워져도 사본에 남깁니다. 사본 복사가 실패해도 백업 자체는 성공으로 처리하고 로그에만 남깁니다. 끄려면 `$MirrorDir`를 빈 값(`''`)으로 바꿉니다.
+
 복원 (주의: DB 내용을 백업 시점으로 덮어씀):
 
 ```powershell

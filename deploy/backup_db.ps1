@@ -3,7 +3,9 @@
 #   수동 실행: powershell -ExecutionPolicy Bypass -File deploy\backup_db.ps1
 param(
     [string]$BackupDir = 'G:\blog_backups',  # 백업 저장 위치
-    [int]$KeepDays = 30                      # 이 기간보다 오래된 DB 덤프는 삭제
+    [int]$KeepDays = 30,                     # 이 기간보다 오래된 DB 덤프는 삭제
+    # 두 번째 사본 위치 (예: OneDrive 폴더). 비우면 복사하지 않음. 실패해도 백업 자체는 성공으로 처리
+    [string]$MirrorDir = 'D:\OneDrive\DEV\django_blog_backup\auto'
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -62,3 +64,19 @@ catch {
 finally {
     Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
 }
+
+# 4. 두 번째 사본 (DB 덤프는 정리 결과까지 그대로 맞추고, media 는 지워진 파일도 유지)
+if ($MirrorDir) {
+    try {
+        if (-not (Test-Path (Split-Path $MirrorDir -Qualifier))) { throw "드라이브 없음: $MirrorDir" }
+        robocopy $dbDir (Join-Path $MirrorDir 'db') *.dump /MIR /R:2 /W:5 /NP /NFL /NDL /NJH /NJS | Out-Null
+        if ($LASTEXITCODE -ge 8) { throw "DB 덤프 복사 실패 (robocopy exit $LASTEXITCODE)" }
+        robocopy $mediaDir (Join-Path $MirrorDir 'media') /E /XO /R:2 /W:5 /NP /NFL /NDL /NJH /NJS | Out-Null
+        if ($LASTEXITCODE -ge 8) { throw "media 복사 실패 (robocopy exit $LASTEXITCODE)" }
+        Write-Log "사본 복사 완료: $MirrorDir"
+    }
+    catch {
+        Write-Log "사본 복사 실패 (백업 자체는 정상): $($_.Exception.Message)"
+    }
+}
+exit 0
