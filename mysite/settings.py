@@ -190,6 +190,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
+# 새 댓글 텔레그램 알림 (비워 두면 알림 꺼짐, deploy\README.md 참고)
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
+
 # 에디터 설정
 SUMMERNOTE_CONFIG = {
     'summernote': {

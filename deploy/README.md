@@ -187,6 +187,25 @@ $env:PGPASSWORD = "<DB 비밀번호>"
 & "C:\Program Files\PostgreSQL\15\bin\pg_restore.exe" --host 192.168.0.10 --username postgres --dbname postgres --clean --if-exists --no-owner G:\blog_backups\db\<파일명>.dump
 ```
 
+## 댓글 텔레그램 알림
+
+새 댓글(승인 대기)이 달리면 텔레그램으로 알림을 보냅니다. `.env`의 값을 비워 두면 알림이 꺼집니다.
+
+1. 텔레그램에서 **@BotFather**에게 `/newbot`을 보내고 안내대로 봇을 만듭니다. 마지막에 받는 토큰을 `.env`에 넣습니다.
+   ```
+   TELEGRAM_BOT_TOKEN=123456789:AA...
+   ```
+2. 텔레그램에서 방금 만든 봇을 찾아 아무 메시지나 보낸 뒤, 채팅 ID를 확인합니다.
+   ```powershell
+   myvenv\Scripts\python.exe manage.py telegram_setup
+   ```
+   출력된 `TELEGRAM_CHAT_ID=...` 줄을 `.env`에 넣습니다.
+3. 테스트 메시지를 보내 확인하고, Django를 재시작해 반영합니다.
+   ```powershell
+   myvenv\Scripts\python.exe manage.py telegram_setup --test
+   nssm restart blog-waitress
+   ```
+
 ## 서비스 관리
 
 ```powershell
