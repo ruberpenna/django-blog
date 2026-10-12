@@ -9,6 +9,7 @@
                 <a href="{% url 'post_srch' %}?ctg={{ post.ctg|urlencode }}" class="badge-ctg">{{ post.ctg }}</a>
                 {% if post.published_date %}
                     <time>{{ post.published_date|date:'Y.m.d H:i' }}</time>
+                    <span class="view-count"><span class="glyphicon glyphicon-eye-open"></span> {{ post.view_count }}</span>
                 {% else %}
                     <span class="badge-draft">승인 대기</span>
                 {% endif %}

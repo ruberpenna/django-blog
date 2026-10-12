@@ -22,7 +22,7 @@
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="{% static 'css/blog.css' %}?v=9">
+        <link rel="stylesheet" href="{% static 'css/blog.css' %}?v=10">
         <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
         <meta name="theme-color" content="#14161b" media="(prefers-color-scheme: dark)">
         <!-- 저장된 테마를 그리기 전에 적용 (깜빡임 방지) -->
@@ -99,6 +99,23 @@
                         {% endfor %}
                     </ul>
                 </section>
+
+                {% if sidebar_popular %}
+                <section class="widget">
+                    <h4 class="widget-title">인기 글</h4>
+                    <ol class="recent-list popular-list">
+                        {% for p in sidebar_popular %}
+                        <li>
+                            <span class="rank">{{ forloop.counter }}</span>
+                            <div class="popular-body">
+                                <a href="{% url 'post_detail' pk=p.pk %}">{{ p.title }}</a>
+                                <span class="recent-date">조회 {{ p.view_count }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                </section>
+                {% endif %}
 
                 <section class="widget">
                     <h4 class="widget-title">최근 글</h4>

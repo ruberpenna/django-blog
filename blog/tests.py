@@ -207,3 +207,52 @@ class CommentSpamTests(TestCase):
         for _ in range(2):
             self.assertEqual(self.post_comment(comment_data()).status_code, 429)
         self.assertEqual(cache.get('comment-rate:8.8.4.4'), 5)
+
+
+# 조회수
+class ViewCountTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user('tester', password='test-pass-123')
+        self.post = Post.objects.create(
+            author=self.user, title='조회수 글', text='<p>본문</p>', ctg='기타',
+            published_date=timezone.now() - timedelta(days=1))
+        self.url = reverse('post_detail', kwargs={'pk': self.post.pk})
+
+    def views(self):
+        self.post.refresh_from_db()
+        return self.post.view_count
+
+    def test_counts_and_shows(self):
+        res = self.client.get(self.url, HTTP_X_REAL_IP='8.8.8.8')
+        self.assertEqual(self.views(), 1)
+        self.assertContains(res, 'glyphicon-eye-open"></span> 1')
+
+    def test_same_ip_counted_once_per_window(self):
+        for _ in range(3):
+            self.client.get(self.url, HTTP_X_REAL_IP='8.8.8.8')
+        self.assertEqual(self.views(), 1)
+        self.client.get(self.url, HTTP_X_REAL_IP='1.1.1.1')
+        self.assertEqual(self.views(), 2)
+
+    def test_logged_in_and_bots_not_counted(self):
+        self.client.get(self.url, HTTP_USER_AGENT='Mozilla/5.0 (compatible; Googlebot/2.1)', HTTP_X_REAL_IP='8.8.8.8')
+        self.client.get(self.url, HTTP_USER_AGENT='facebookexternalhit/1.1', HTTP_X_REAL_IP='1.1.1.1')
+        self.client.force_login(self.user)
+        self.client.get(self.url, HTTP_X_REAL_IP='9.9.9.9')
+        self.assertEqual(self.views(), 0)
+
+    def test_draft_not_counted(self):
+        draft = Post.objects.create(author=self.user, title='대기', text='x', ctg='기타')
+        self.client.get(reverse('post_detail', kwargs={'pk': draft.pk}))  # 비로그인 404
+        draft.refresh_from_db()
+        self.assertEqual(draft.view_count, 0)
+
+    def test_popular_sidebar(self):
+        other = Post.objects.create(author=self.user, title='덜 본 글', text='x', ctg='기타',
+                                    published_date=timezone.now() - timedelta(days=2), view_count=1)
+        Post.objects.filter(pk=self.post.pk).update(view_count=5)
+        res = self.client.get('/', HTTP_USER_AGENT='Googlebot')
+        popular = list(res.context['sidebar_popular'])
+        self.assertEqual(popular, [self.post, other])
+        self.assertContains(res, '인기 글')

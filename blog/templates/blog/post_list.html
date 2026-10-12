@@ -27,7 +27,10 @@
             <h2 class="post-title"><a href="{% url 'post_detail' pk=post.pk %}">{{ post.title }}</a></h2>
             <p class="post-excerpt">{{ post.text|striptags|safe|truncatechars:160 }}</p>
             <div class="post-foot">
-                <span><span class="glyphicon glyphicon-comment"></span> {{ post.approved_comments.count }}</span>
+                <span class="post-stats">
+                    <span title="댓글"><span class="glyphicon glyphicon-comment"></span> {{ post.approved_comments.count }}</span>
+                    <span title="조회수"><span class="glyphicon glyphicon-eye-open"></span> {{ post.view_count }}</span>
+                </span>
                 <a href="{% url 'post_detail' pk=post.pk %}" class="read-more">계속 읽기 &rarr;</a>
             </div>
         </article>

@@ -346,6 +346,23 @@ a.badge-ctg:hover { background: var(--accent); color: #fff; }
 }
 .recent-date { color: var(--text-sub); font-size: 12px; }
 
+/* 인기 글 (순위 + 제목 + 조회수) */
+.popular-list li { display: flex; align-items: flex-start; gap: 10px; }
+.popular-list .rank {
+    flex: none;
+    width: 20px;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+}
+.popular-list .popular-body { min-width: 0; flex: 1; }
+
+/* 조회수/댓글 수 */
+.post-stats { display: inline-flex; gap: 14px; }
+.view-count { color: var(--text-sub); }
+
 /* ===== 글 상세 ===== */
 .post-view, .comments, .panel-box {
     background: var(--card);

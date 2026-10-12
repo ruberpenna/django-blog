@@ -7,11 +7,12 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import HttpResponse
 from django.views.decorators.cache import cache_page
 import ipaddress
 import logging
+import re
 
 # 로거 선언
 logger = logging.getLogger('django')
@@ -37,9 +38,25 @@ def get_visible_post(request, pk):
         posts = posts.filter(published_date__lte=timezone.now())
     return get_object_or_404(posts, pk=pk)
 
+VIEW_DEDUP_SECONDS = 60 * 30  # 같은 IP 가 같은 글을 이 시간 안에 다시 보면 조회수에 넣지 않음
+BOT_UA_RE = re.compile(r'bot|crawl|spider|slurp|facebookexternalhit|preview|headless', re.I)
+
+# 조회수 1 증가 (로그인 사용자, 검색엔진/미리보기 봇, 승인 대기 글, 짧은 시간 재조회는 제외)
+def count_view(request, post):
+    if request.user.is_authenticated or not post.published_date:
+        return
+    if BOT_UA_RE.search(request.META.get('HTTP_USER_AGENT', '')):
+        return
+    key = f'post-view:{post.pk}:{get_client_ip(request)}'
+    if not cache.add(key, 1, VIEW_DEDUP_SECONDS):  # 이미 있으면 최근에 본 것
+        return
+    Post.objects.filter(pk=post.pk).update(view_count=F('view_count') + 1)
+    post.view_count += 1
+
 # 글 상세
 def post_detail(request, pk):
     post = get_visible_post(request, pk)
+    count_view(request, post)
     meta = {
         'type': 'article',
         'title': post.title,
