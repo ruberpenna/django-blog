@@ -147,7 +147,18 @@ Caddy는 HTTPS 없이 `:8123`에서 HTTP만 받습니다(인증서는 NPM 담당
    기존에 `0.0.0.0/0`처럼 전체를 허용하는 줄이 있으면 지웁니다. 인증 방식(`scram-sha-256` 또는 `md5`)은 기존 줄과 같게 맞추세요.
 3. PostgreSQL 서비스를 재시작합니다.
 
-주의: 외부에서 이 DB로 직접 개발하던 PC가 있다면, 이후로는 접속이 안 됩니다. 그 PC는 같은 내부망에서 작업하거나 VPN을 사용해야 합니다.
+주의: 외부에서 이 DB로 직접 개발하던 PC가 있다면, 이후로는 접속이 안 됩니다. 그 PC는 같은 내부망에서 작업하거나 VPN(예: Tailscale)을 사용해야 합니다.
+
+### 블로그 전용 DB 계정
+
+블로그는 슈퍼유저(`postgres`)가 아닌 전용 계정 `blog_app`과 전용 DB `blog`를 씁니다. 새로 설치할 때는 DB 서버에서 슈퍼유저로 아래를 실행한 뒤, `.env`의 `DB_NAME=blog`, `DB_USER=blog_app`, `DB_PASSWORD`를 맞추고 `migrate`를 실행합니다.
+
+```sql
+CREATE ROLE blog_app LOGIN PASSWORD '<긴 무작위 비밀번호>' NOSUPERUSER CREATEDB NOCREATEROLE;
+CREATE DATABASE blog OWNER blog_app ENCODING 'UTF8' TEMPLATE template0;
+```
+
+`CREATEDB`는 `manage.py test`가 테스트 DB를 만들 때만 필요합니다. 다른 DB의 데이터에는 접근할 수 없습니다.
 
 ---
 
