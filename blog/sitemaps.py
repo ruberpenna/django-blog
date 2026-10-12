@@ -1,6 +1,6 @@
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
-from django.utils import timezone
+from django.contrib.auth.models import AnonymousUser
 from .models import Post
 
 # 발행된 글 목록 (sitemap.xml)
@@ -9,7 +9,7 @@ class PostSitemap(Sitemap):
     priority = 0.8
 
     def items(self):
-        return Post.objects.filter(published_date__lte=timezone.now()).order_by('-published_date')
+        return Post.objects.visible_to(AnonymousUser()).order_by('-published_date')  # 공개 글만
 
     def lastmod(self, post):
         return post.published_date

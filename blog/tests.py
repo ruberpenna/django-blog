@@ -256,3 +256,72 @@ class ViewCountTests(TestCase):
         popular = list(res.context['sidebar_popular'])
         self.assertEqual(popular, [self.post, other])
         self.assertContains(res, '인기 글')
+
+
+# 비공개 글
+class PrivatePostTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user('tester', password='test-pass-123')
+        past = timezone.now() - timedelta(days=1)
+        self.public = Post.objects.create(author=self.user, title='공개 글', text='<p>공개 본문</p>',
+                                          ctg='기타', published_date=past)
+        self.private = Post.objects.create(author=self.user, title='비밀 글', text='<p>비밀 본문</p>',
+                                           ctg='비밀카테고리', published_date=past, is_private=True)
+        self.detail = reverse('post_detail', kwargs={'pk': self.private.pk})
+        self.toggle = reverse('post_toggle_private', kwargs={'pk': self.public.pk})
+
+    def test_hidden_everywhere_for_anonymous(self):
+        for url in ['/', '/srch/?kwd=비밀', '/srch/?ctg=비밀카테고리', '/sitemap.xml']:
+            res = self.client.get(url)
+            self.assertNotContains(res, '비밀 글', msg_prefix=url)
+            self.assertNotContains(res, self.detail, msg_prefix=url)
+        res = self.client.get('/')
+        self.assertNotContains(res, '비밀카테고리')      # 사이드바 카테고리
+        self.assertEqual(res.context['sidebar_total'], 1)
+        self.assertEqual(self.client.get(self.detail).status_code, 404)
+        self.assertEqual(self.client.get(reverse('add_comment_to_post', kwargs={'pk': self.private.pk})).status_code, 404)
+
+    def test_not_counted(self):
+        Post.objects.filter(pk=self.private.pk).update(view_count=0)
+        self.client.get(self.detail, HTTP_X_REAL_IP='8.8.8.8')  # 404
+        self.client.force_login(self.user)
+        self.client.get(self.detail, HTTP_X_REAL_IP='8.8.8.8')  # 로그인 사용자는 원래 안 셈
+        self.private.refresh_from_db()
+        self.assertEqual(self.private.view_count, 0)
+
+    def test_logged_in_sees_with_badge_and_button(self):
+        self.client.force_login(self.user)
+        res = self.client.get('/')
+        self.assertContains(res, '비밀 글')
+        self.assertContains(res, 'badge-private')
+        res = self.client.get(self.detail)
+        self.assertContains(res, '공개로 전환')
+        self.assertContains(res, '<meta name="robots" content="noindex">')
+        res = self.client.get(reverse('post_detail', kwargs={'pk': self.public.pk}))
+        self.assertContains(res, '비공개로 전환')
+        self.assertNotContains(self.client.get('/sitemap.xml'), self.detail)
+
+    def test_button_hidden_for_anonymous(self):
+        res = self.client.get(reverse('post_detail', kwargs={'pk': self.public.pk}))
+        self.assertNotContains(res, '비공개로 전환')
+        self.assertNotContains(res, self.toggle)
+
+    def test_toggle(self):
+        self.client.force_login(self.user)
+        res = self.client.post(self.toggle)
+        self.assertRedirects(res, reverse('post_detail', kwargs={'pk': self.public.pk}))
+        self.public.refresh_from_db()
+        self.assertTrue(self.public.is_private)
+        self.client.post(self.toggle)
+        self.public.refresh_from_db()
+        self.assertFalse(self.public.is_private)
+
+    def test_toggle_requires_login_and_post(self):
+        res = self.client.post(self.toggle)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/admin/login/', res['Location'])
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(self.toggle).status_code, 405)
+        self.public.refresh_from_db()
+        self.assertFalse(self.public.is_private)

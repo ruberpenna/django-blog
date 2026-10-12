@@ -23,6 +23,7 @@
             <div class="post-meta">
                 <a href="{% url 'post_srch' %}?ctg={{ post.ctg|urlencode }}" class="badge-ctg">{{ post.ctg }}</a>
                 <time>{{ post.published_date|date:'Y.m.d H:i' }}</time>
+                {% if post.is_private %}<span class="badge-private"><span class="glyphicon glyphicon-lock"></span> 비공개</span>{% endif %}
             </div>
             <h2 class="post-title"><a href="{% url 'post_detail' pk=post.pk %}">{{ post.title }}</a></h2>
             <p class="post-excerpt">{{ post.text|striptags|safe|truncatechars:160 }}</p>

@@ -190,6 +190,19 @@ a.badge-ctg:hover { background: var(--accent); color: #fff; }
     font-size: 12px;
 }
 
+.badge-private {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--text-sub);
+    font-size: 12px;
+}
+.badge-private .glyphicon { font-size: 10px; top: 0; }
+
 .post-title {
     font-size: 21px;
     line-height: 1.45;

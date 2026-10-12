@@ -21,7 +21,7 @@ logger = logging.getLogger('django')
 
 # 글 리스트
 def post_list(request):
-    posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('-published_date')
+    posts = Post.objects.visible_to(request.user).order_by('-published_date')
     
     #blog_list = Post.objects.all()
     # logger.info(blog_list)
@@ -31,11 +31,9 @@ def post_list(request):
     lists = paginator.get_page(page)
     return render(request, 'blog/post_list.html', {'posts': posts, 'lists': lists})
 
-# 발행된 글만 조회 (승인 대기/예약 글은 로그인한 사용자만, 그 외에는 404)
+# 상세/댓글 대상 글 (승인 대기/예약/비공개 글은 로그인한 사용자만, 그 외에는 404)
 def get_visible_post(request, pk):
-    posts = Post.objects.all()
-    if not request.user.is_authenticated:
-        posts = posts.filter(published_date__lte=timezone.now())
+    posts = Post.objects.all() if request.user.is_authenticated else Post.objects.visible_to(request.user)
     return get_object_or_404(posts, pk=pk)
 
 VIEW_DEDUP_SECONDS = 60 * 30  # 같은 IP 가 같은 글을 이 시간 안에 다시 보면 조회수에 넣지 않음
@@ -43,7 +41,7 @@ BOT_UA_RE = re.compile(r'bot|crawl|spider|slurp|facebookexternalhit|preview|head
 
 # 조회수 1 증가 (로그인 사용자, 검색엔진/미리보기 봇, 승인 대기 글, 짧은 시간 재조회는 제외)
 def count_view(request, post):
-    if request.user.is_authenticated or not post.published_date:
+    if request.user.is_authenticated or not post.published_date or post.is_private:
         return
     if BOT_UA_RE.search(request.META.get('HTTP_USER_AGENT', '')):
         return
@@ -62,7 +60,7 @@ def post_detail(request, pk):
         'title': post.title,
         'description': post.summary(),
         'image': post.first_image(),
-        'noindex': not post.published_date,  # 승인 대기 글은 검색엔진 제외
+        'noindex': not post.published_date or post.is_private,  # 승인 대기/비공개 글은 검색엔진 제외
     }
     return render(request, 'blog/post_detail.html', {'post': post, 'meta': meta})
 
@@ -110,6 +108,15 @@ def post_draft_list(request):
 def post_publish(request, pk):
     post = get_object_or_404(Post, pk=pk)
     post.publish()
+    return redirect('post_detail', pk=pk)
+
+# 공개/비공개 전환
+@login_required
+@require_POST
+def post_toggle_private(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    post.is_private = not post.is_private
+    post.save(update_fields=['is_private'])
     return redirect('post_detail', pk=pk)
 
 # 글 삭제
@@ -197,7 +204,7 @@ def post_srch(request):
     page = request.GET.get('page', '1') # 페이지
     kwd = request.GET.get('kwd', '') # 검색어
     ctg = request.GET.get('ctg', '') # 카테고리
-    posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('-published_date')
+    posts = Post.objects.visible_to(request.user).order_by('-published_date')
     if ctg:
         posts = posts.filter(ctg=ctg)
     if kwd:

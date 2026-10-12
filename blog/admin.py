@@ -4,8 +4,8 @@ from .models import Post, Comment
 # Register your models here.
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'ctg', 'published_date', 'view_count')
-    list_filter = ('ctg',)
+    list_display = ('title', 'ctg', 'published_date', 'is_private', 'view_count')
+    list_filter = ('ctg', 'is_private')
     search_fields = ('title',)
     ordering = ('-published_date',)
 

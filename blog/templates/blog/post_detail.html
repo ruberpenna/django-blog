@@ -13,6 +13,7 @@
                 {% else %}
                     <span class="badge-draft">승인 대기</span>
                 {% endif %}
+                {% if post.is_private %}<span class="badge-private"><span class="glyphicon glyphicon-lock"></span> 비공개</span>{% endif %}
             </div>
             <h1 class="post-view-title">{{ post.title }}</h1>
             {% if user.is_authenticated %}
@@ -23,6 +24,13 @@
                     </form>
                 {% endif %}
                 <a class="btn btn-sm btn-default" href="{% url 'post_edit' pk=post.pk %}"><span class="glyphicon glyphicon-pencil"></span> 수정</a>
+                <form method="POST" action="{% url 'post_toggle_private' pk=post.pk %}" class="inline-form">{% csrf_token %}
+                    {% if post.is_private %}
+                        <button type="submit" class="btn btn-sm btn-default"><span class="glyphicon glyphicon-eye-open"></span> 공개로 전환</button>
+                    {% else %}
+                        <button type="submit" class="btn btn-sm btn-default"><span class="glyphicon glyphicon-lock"></span> 비공개로 전환</button>
+                    {% endif %}
+                </form>
                 <form method="POST" action="{% url 'post_remove' pk=post.pk %}" class="inline-form"
                       data-confirm-title="글을 삭제할까요?" data-confirm="'{{ post.title }}' 글과 댓글이 모두 삭제되며 되돌릴 수 없습니다.">{% csrf_token %}
                     <button type="submit" class="btn btn-sm btn-danger"><span class="glyphicon glyphicon-trash"></span> 삭제</button>

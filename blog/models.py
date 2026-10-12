@@ -7,6 +7,15 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import Truncator
 
+class PostQuerySet(models.QuerySet):
+    def visible_to(self, user):
+        """목록/검색/사이드바에 보여줄 글: 발행된 글. 비공개 글은 로그인한 사용자에게만"""
+        posts = self.filter(published_date__lte=timezone.now())
+        if not user.is_authenticated:
+            posts = posts.filter(is_private=False)
+        return posts
+
+
 # 블로그 포스트 DB 세팅
 class Post(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -16,6 +25,9 @@ class Post(models.Model):
     published_date = models.DateTimeField(blank=True, null=True)
     ctg = models.CharField(max_length=50)
     view_count = models.PositiveIntegerField('조회수', default=0)
+    is_private = models.BooleanField('비공개', default=False)  # True 면 로그인한 사용자만 볼 수 있음
+
+    objects = PostQuerySet.as_manager()
 
     def publish(self):
         self.published_date = timezone.now()
