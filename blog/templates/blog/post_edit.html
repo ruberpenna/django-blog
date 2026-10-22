@@ -26,6 +26,11 @@
                     <label for="{{ form.ctg.id_for_label }}">{{ form.ctg.label }}</label>
                     {{ form.ctg }}
                     {% if form.ctg.errors %}<div class="field-error">{{ form.ctg.errors|join:' ' }}</div>{% endif %}
+                    <!-- "+ 새 카테고리 추가…" 를 고르면 표시 -->
+                    <div class="new-ctg" id="new_ctg_box">
+                        {{ form.new_ctg }}
+                        {% if form.new_ctg.errors %}<div class="field-error">{{ form.new_ctg.errors|join:' ' }}</div>{% endif %}
+                    </div>
                 </div>
                 <div class="field field-title">
                     <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
@@ -46,4 +51,23 @@
             <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-ok"></span> 저장</button>
         </div>
     </form>
+{% endblock %}
+
+{% block script %}
+<script>
+    // 카테고리에서 "+ 새 카테고리 추가…" 를 고르면 이름 입력칸을 보여주고 포커스
+    (function() {
+        const select = document.getElementById('{{ form.ctg.id_for_label }}');
+        const box = document.getElementById('new_ctg_box');
+        const input = document.getElementById('{{ form.new_ctg.id_for_label }}');
+        function sync(focus) {
+            const isNew = select.value === '{{ form.NEW_CATEGORY }}';
+            box.hidden = !isNew;
+            input.required = isNew;
+            if (isNew && focus) input.focus();
+        }
+        select.addEventListener('change', function() { sync(true); });
+        sync(false);
+    })();
+</script>
 {% endblock %}

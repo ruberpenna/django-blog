@@ -325,3 +325,102 @@ class PrivatePostTests(TestCase):
         self.assertEqual(self.client.get(self.toggle).status_code, 405)
         self.public.refresh_from_db()
         self.assertFalse(self.public.is_private)
+
+
+# 글쓰기 카테고리 (기존 선택 / 새로 추가)
+class PostCategoryTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('tester', password='test-pass-123')
+        self.client.force_login(self.user)
+        Post.objects.create(author=self.user, title='기존', text='x', ctg='자바',
+                            published_date=timezone.now() - timedelta(days=1))
+
+    def save(self, **data):
+        base = {'title': '새 글', 'text': '<p>본문</p>', 'new_ctg': ''}
+        base.update(data)
+        return self.client.post(reverse('post_new'), base)
+
+    def test_choices_are_used_categories_and_new(self):
+        res = self.client.get(reverse('post_new'))
+        self.assertContains(res, '<option value="자바">')
+        self.assertContains(res, '새 카테고리 추가')
+        for unused in ['정리글', '소스', '백업']:  # 쓰이지 않는 옛 기본 카테고리는 안 보임
+            self.assertNotContains(res, f'<option value="{unused}">')
+
+    def test_existing_category(self):
+        self.assertEqual(self.save(ctg='자바').status_code, 302)
+        self.assertEqual(Post.objects.get(title='새 글').ctg, '자바')
+
+    def test_new_category_created_and_listed(self):
+        self.assertEqual(self.save(ctg='__new__', new_ctg='  파이썬   팁 ').status_code, 302)
+        self.assertEqual(Post.objects.get(title='새 글').ctg, '파이썬 팁')
+        self.assertContains(self.client.get(reverse('post_new')), '<option value="파이썬 팁">')
+
+    def test_new_category_requires_name(self):
+        res = self.save(ctg='__new__', new_ctg='   ')
+        self.assertContains(res, '새 카테고리 이름을 입력하세요')
+        self.assertFalse(Post.objects.filter(title='새 글').exists())
+
+    def test_new_category_matches_existing_case_insensitively(self):
+        Post.objects.create(author=self.user, title='영문', text='x', ctg='Django')
+        self.save(ctg='__new__', new_ctg='django')
+        self.assertEqual(Post.objects.get(title='새 글').ctg, 'Django')
+
+    def test_unknown_choice_rejected(self):
+        res = self.save(ctg='없는카테고리')
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(Post.objects.filter(title='새 글').exists())
+
+    def test_edit_keeps_current_category(self):
+        post = Post.objects.get(title='기존')
+        res = self.client.get(reverse('post_edit', kwargs={'pk': post.pk}))
+        self.assertContains(res, '<option value="자바" selected>')
+
+
+# 카테고리 관리 (이름 변경 / 합치기)
+class CategoryManageTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('tester', password='test-pass-123')
+        self.url = reverse('category_manage')
+        past = timezone.now() - timedelta(days=1)
+        for title, ctg, private in [('a', '기타', False), ('b', '메모', True), ('c', '메모', False)]:
+            Post.objects.create(author=self.user, title=title, text='x', ctg=ctg,
+                                published_date=past, is_private=private)
+        Post.objects.create(author=self.user, title='draft', text='x', ctg='기타')  # 승인 대기
+
+    def ctgs(self):
+        return dict(Post.objects.values_list('title', 'ctg'))
+
+    def test_requires_login(self):
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+        self.client.post(self.url, {'old': '기타', 'new': '해킹'})
+        self.assertNotIn('해킹', self.ctgs().values())
+
+    def test_lists_all_categories_with_counts(self):
+        self.client.force_login(self.user)
+        res = self.client.get(self.url)
+        self.assertContains(res, '글 2개', count=2)  # 기타(공개+대기), 메모(비공개+공개)
+        self.assertContains(self.client.get('/'), 'glyphicon-tags')  # 상단 메뉴 링크
+
+    def test_rename(self):
+        self.client.force_login(self.user)
+        res = self.client.post(self.url, {'old': '기타', 'new': '  잡동사니 '}, follow=True)
+        self.assertEqual(self.ctgs(), {'a': '잡동사니', 'b': '메모', 'c': '메모', 'draft': '잡동사니'})
+        self.assertContains(res, "&#x27;기타&#x27; → &#x27;잡동사니&#x27; 로 바꿨습니다. (글 2개)")
+
+    def test_merge_into_existing_case_insensitive(self):
+        Post.objects.filter(ctg='메모').update(ctg='Memo')
+        self.client.force_login(self.user)
+        res = self.client.post(self.url, {'old': '기타', 'new': 'memo'}, follow=True)
+        self.assertEqual(set(self.ctgs().values()), {'Memo'})
+        self.assertContains(res, '합쳤습니다')
+
+    def test_invalid_inputs(self):
+        self.client.force_login(self.user)
+        before = self.ctgs()
+        for data, msg in [({'old': '기타', 'new': '  '}, '새 이름을 입력하세요'),
+                          ({'old': '없는것', 'new': 'x'}, '찾을 수 없습니다'),
+                          ({'old': '기타', 'new': 'x' * 51}, '너무 깁니다'),
+                          ({'old': '기타', 'new': '기타'}, '이름이 같아서')]:
+            self.assertContains(self.client.post(self.url, data, follow=True), msg)
+        self.assertEqual(self.ctgs(), before)

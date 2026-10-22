@@ -1,13 +1,14 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
-from .models import Post, Comment
+from .models import Post, Comment, resolve_category
 from .forms import PostForm, CommentForm
 from .notify import notify_new_comment
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
 from django.core.paginator import Paginator
-from django.db.models import F, Q
+from django.contrib import messages
+from django.db.models import Count, F, Q
 from django.http import HttpResponse
 from django.views.decorators.cache import cache_page
 import ipaddress
@@ -118,6 +119,30 @@ def post_toggle_private(request, pk):
     post.is_private = not post.is_private
     post.save(update_fields=['is_private'])
     return redirect('post_detail', pk=pk)
+
+# 카테고리 관리: 이름 변경 (이미 있는 이름으로 바꾸면 합쳐짐)
+@login_required
+def category_manage(request):
+    if request.method == 'POST':
+        old = request.POST.get('old', '')
+        names = Post.objects.category_names()
+        new = resolve_category(request.POST.get('new'), [n for n in names if n != old])
+        if old not in names:
+            messages.error(request, f"'{old}' 카테고리를 찾을 수 없습니다.")
+        elif not new:
+            messages.error(request, '새 이름을 입력하세요.')
+        elif len(new) > Post._meta.get_field('ctg').max_length:
+            messages.error(request, '카테고리 이름이 너무 깁니다. (50자까지)')
+        elif new == old:
+            messages.info(request, '이름이 같아서 바꾸지 않았습니다.')
+        else:
+            merged = new in names
+            count = Post.objects.filter(ctg=old).update(ctg=new)
+            action = '합쳤습니다' if merged else '바꿨습니다'
+            messages.success(request, f"'{old}' → '{new}' 로 {action}. (글 {count}개)")
+        return redirect('category_manage')
+    categories = Post.objects.values('ctg').annotate(cnt=Count('id')).order_by('ctg')
+    return render(request, 'blog/category_manage.html', {'categories': categories})
 
 # 글 삭제
 @login_required

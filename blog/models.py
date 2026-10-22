@@ -15,6 +15,17 @@ class PostQuerySet(models.QuerySet):
             posts = posts.filter(is_private=False)
         return posts
 
+    def category_names(self):
+        """글에 쓰이고 있는 카테고리 이름 (가나다순)"""
+        return sorted(set(self.exclude(ctg='').values_list('ctg', flat=True)))
+
+
+def resolve_category(name, existing):
+    """입력한 카테고리 이름 정리: 공백 정리, 대소문자만 다른 기존 이름이 있으면 그 이름 사용.
+    빈 이름이면 '' 반환"""
+    name = ' '.join((name or '').split())
+    return {c.lower(): c for c in existing}.get(name.lower(), name)
+
 
 # 블로그 포스트 DB 세팅
 class Post(models.Model):

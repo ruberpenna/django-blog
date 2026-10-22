@@ -22,7 +22,7 @@
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="{% static 'css/blog.css' %}?v=11">
+        <link rel="stylesheet" href="{% static 'css/blog.css' %}?v=14">
         <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
         <meta name="theme-color" content="#14161b" media="(prefers-color-scheme: dark)">
         <!-- 저장된 테마를 그리기 전에 적용 (깜빡임 방지) -->
@@ -50,6 +50,7 @@
                     {% if user.is_authenticated %}
                         <a href="{% url 'post_new' %}" title="글쓰기"><span class="glyphicon glyphicon-pencil"></span><em>글쓰기</em></a>
                         <a href="{% url 'post_draft_list' %}" title="승인 대기"><span class="glyphicon glyphicon-inbox"></span><em>승인대기</em></a>
+                        <a href="{% url 'category_manage' %}" title="카테고리 관리"><span class="glyphicon glyphicon-tags"></span><em>카테고리</em></a>
                         <a href="/admin" title="관리자"><span class="glyphicon glyphicon-cog"></span><em>관리자</em></a>
                         <!-- Django 5.0+ 로그아웃은 POST 만 허용 -->
                         <form method="post" action="{% url 'admin:logout' %}" class="nav-form">{% csrf_token %}

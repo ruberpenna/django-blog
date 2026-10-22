@@ -12,6 +12,7 @@ urlpatterns = [
     path('summernote/', include('django_summernote.urls')), # 에디터
 
     path('drafts/', views.post_draft_list, name='post_draft_list'), # 임시글 목록
+    path('categories/', views.category_manage, name='category_manage'), # 카테고리 관리
     path('post/<int:pk>/publish/', views.post_publish, name='post_publish'), # 임시글 승인
     path('post/<int:pk>/comment/', views.add_comment_to_post, name='add_comment_to_post'), # 댓글 작성
     path('post/<int:pk>/private/', views.post_toggle_private, name='post_toggle_private'), # 공개/비공개 전환
