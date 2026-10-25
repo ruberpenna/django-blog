@@ -424,3 +424,119 @@ class CategoryManageTests(TestCase):
                           ({'old': '기타', 'new': '기타'}, '이름이 같아서')]:
             self.assertContains(self.client.post(self.url, data, follow=True), msg)
         self.assertEqual(self.ctgs(), before)
+
+
+# 에디터 이미지 업로드 크기 제한 (20MB). 업로드 파일은 임시 폴더에 저장하고 끝나면 삭제
+class AttachmentSizeTests(TestCase):
+    def setUp(self):
+        import shutil, tempfile
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        override = override_settings(MEDIA_ROOT=media)
+        override.enable()
+        self.addCleanup(override.disable)
+
+    def upload(self, size):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        user = User.objects.create_user(f'u{size}', password='test-pass-123')
+        self.client.force_login(user)
+        if size <= 20 * 1024 * 1024:
+            # 진짜 JPEG (노이즈라 압축이 거의 안 돼서 큼). 이미지 검사를 통과해야 하므로
+            import io, os as _os
+            from PIL import Image
+            side = 2400
+            buf = io.BytesIO()
+            Image.frombytes('RGB', (side, side), _os.urandom(side * side * 3)).save(buf, 'JPEG', quality=100)
+            data = buf.getvalue()
+            self.assertGreater(len(data), 4 * 1024 * 1024)
+        else:
+            data = b'\xff' * size
+        f = SimpleUploadedFile('photo.jpg', data, content_type='image/jpeg')
+        return self.client.post('/summernote/upload_attachment/', {'files': [f]})
+
+    def test_phone_photo_size_allowed(self):
+        res = self.upload(5 * 1024 * 1024)
+        self.assertEqual(res.status_code, 200, res.content[:200])
+        self.assertIn('/media/', res.json()['files'][0]['url'])
+
+    def test_over_limit_rejected(self):
+        res = self.upload(21 * 1024 * 1024)
+        self.assertNotEqual(res.status_code, 200)
+
+
+# 에디터 사진 자동 줄이기 + EXIF(위치 정보) 제거
+class ImageShrinkTests(TestCase):
+    def setUp(self):
+        import shutil, tempfile
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        override = override_settings(MEDIA_ROOT=media)
+        override.enable()
+        self.addCleanup(override.disable)
+        self.client.force_login(User.objects.create_user('tester', password='test-pass-123'))
+
+    def make(self, fmt, size, exif=None, mode='RGB'):
+        import io
+        from PIL import Image
+        buf = io.BytesIO()
+        img = Image.new(mode, size, 'orange' if mode == 'RGB' else 0)
+        kwargs = {'exif': exif} if exif is not None else {}
+        img.save(buf, fmt, **kwargs)
+        return buf.getvalue()
+
+    def gps_exif(self, orientation=1):
+        from PIL import Image
+        exif = Image.Exif()
+        exif[0x0112] = orientation            # Orientation
+        exif[0x010F] = 'TestPhone'            # Make
+        exif.get_ifd(0x8825)[2] = (37.0, 30.0, 0.0)  # GPSLatitude
+        return exif
+
+    def upload(self, data, name):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        res = self.client.post('/summernote/upload_attachment/', {'files': [SimpleUploadedFile(name, data)]})
+        self.assertEqual(res.status_code, 200, res.content[:200])
+        from django_summernote.models import Attachment
+        return Attachment.objects.latest('pk')
+
+    def open_saved(self, att):
+        import io
+        from PIL import Image
+        att.file.open('rb')
+        img = Image.open(io.BytesIO(att.file.read()))
+        att.file.close()
+        return img
+
+    def test_large_jpeg_shrunk_and_exif_removed(self):
+        att = self.upload(self.make('JPEG', (4000, 3000), self.gps_exif().tobytes()), 'photo.jpg')
+        img = self.open_saved(att)
+        self.assertEqual(img.size, (1920, 1440))
+        self.assertEqual(len(img.getexif()), 0)
+
+    def test_orientation_applied(self):
+        # 회전 정보 6 = 90도 회전해서 봐야 하는 세로 사진
+        att = self.upload(self.make('JPEG', (3000, 2000), self.gps_exif(orientation=6).tobytes()), 'v.jpg')
+        self.assertEqual(self.open_saved(att).size, (1280, 1920))
+
+    def test_small_image_without_exif_untouched(self):
+        data = self.make('PNG', (800, 600))
+        att = self.upload(data, 'small.png')
+        att.file.open('rb')
+        self.assertEqual(att.file.read(), data)
+        att.file.close()
+
+    def test_large_png_resized_keeps_png(self):
+        att = self.upload(self.make('PNG', (3000, 1000)), 'wide.png')
+        img = self.open_saved(att)
+        self.assertEqual((img.format, img.size), ('PNG', (1920, 640)))
+
+    def test_gif_untouched(self):
+        att = self.upload(self.make('GIF', (3000, 3000), mode='P'), 'anim.gif')
+        self.assertEqual(self.open_saved(att).size, (3000, 3000))
+
+    def test_non_image_rejected(self):
+        # Pillow 가 있으면 에디터 업로드는 이미지만 허용 (html 같은 파일 업로드 차단)
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        for name, data in [('file.pdf', b'%PDF-1.4 not an image'), ('x.html', b'<script>alert(1)</script>')]:
+            res = self.client.post('/summernote/upload_attachment/', {'files': [SimpleUploadedFile(name, data)]})
+            self.assertEqual(res.status_code, 400, name)

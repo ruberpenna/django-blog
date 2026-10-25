@@ -199,4 +199,6 @@ SUMMERNOTE_CONFIG = {
     'summernote': {
         'lang': 'ko-KR',
     },
+    # 첨부(이미지) 크기 제한. 기본 1MB 는 휴대폰 사진이 거의 다 막혀서 20MB 로
+    'attachment_filesize_limit': 20 * 1024 * 1024,
 }

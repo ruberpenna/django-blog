@@ -3,3 +3,4 @@ django-summernote==0.8.20.0
 psycopg2==2.9.13
 python-dotenv==1.2.4
 waitress==3.0.2
+Pillow==13.0.0
