@@ -55,6 +55,9 @@ if get_env_bool('DJANGO_HTTPS', False):
     CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in ALLOWED_HOSTS]
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
+# 다른 사이트에는 사이트 주소만 전달 (브라우저 기본값). Django 기본값 same-origin 은
+# 유튜브 퍼가기 영상에 출처가 전달되지 않아 '오류 153(동영상 플레이어 구성 오류)'이 남
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 
 # Application definition
@@ -201,4 +204,6 @@ SUMMERNOTE_CONFIG = {
     },
     # 첨부(이미지) 크기 제한. 기본 1MB 는 휴대폰 사진이 거의 다 막혀서 20MB 로
     'attachment_filesize_limit': 20 * 1024 * 1024,
+    # 에디터(iframe) 안에서 추가로 불러올 스크립트: 유튜브 주소 인식 보완
+    'js': ('/static/js/summernote-video.js?v=1',),
 }

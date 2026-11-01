@@ -540,3 +540,24 @@ class ImageShrinkTests(TestCase):
         for name, data in [('file.pdf', b'%PDF-1.4 not an image'), ('x.html', b'<script>alert(1)</script>')]:
             res = self.client.post('/summernote/upload_attachment/', {'files': [SimpleUploadedFile(name, data)]})
             self.assertEqual(res.status_code, 400, name)
+
+
+# 에디터 유튜브 주소 보완 스크립트
+class SummernoteVideoScriptTests(TestCase):
+    def test_editor_iframe_loads_script(self):
+        self.client.force_login(User.objects.create_user('tester', password='test-pass-123'))
+        res = self.client.get(reverse('django_summernote-editor', kwargs={'id': 'id_text'}))
+        self.assertContains(res, '/static/js/summernote-video.js')
+
+    def test_video_iframe_kept_in_post(self):
+        user = User.objects.create_user('writer', password='test-pass-123')
+        iframe = '<iframe frameborder="0" src="//www.youtube.com/embed/dQw4w9WgXcQ" width="640" height="360"></iframe>'
+        post = Post.objects.create(author=user, title='영상', text=f'<p>{iframe}</p>', ctg='기타',
+                                   published_date=timezone.now() - timedelta(days=1))
+        self.assertContains(self.client.get(reverse('post_detail', kwargs={'pk': post.pk})),
+                            'src="//www.youtube.com/embed/dQw4w9WgXcQ"')
+
+    def test_referrer_policy_allows_youtube_embed(self):
+        # same-origin 이면 유튜브가 출처를 못 받아 오류 153. 사이트 주소만 전달하는 정책이어야 함
+        res = self.client.get('/')
+        self.assertEqual(res['Referrer-Policy'], 'strict-origin-when-cross-origin')

@@ -404,6 +404,16 @@ a.badge-ctg:hover { background: var(--accent); color: #fff; }
     overflow-wrap: break-word;
 }
 .post-body img { max-width: 100%; height: auto; border-radius: 8px; }
+/* 유튜브 등 동영상: 화면 폭에 맞추고 16:9 유지 (에디터가 넣는 width=640 height=360 무시) */
+.post-body iframe {
+    display: block;
+    width: 100%;
+    max-width: 720px;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    border-radius: 8px;
+}
 .post-body pre {
     background: var(--code-bg);
     color: var(--code-text);
