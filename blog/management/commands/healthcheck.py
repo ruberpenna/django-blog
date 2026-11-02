@@ -104,7 +104,10 @@ class Command(BaseCommand):
             state.pop('last_alert', None)
 
         stamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.stdout.write(f'{stamp} ' + ('정상' if not failures else '장애\n' + detail))
+        result = '정상' if not failures else '장애\n' + detail
+        if restarted and not failures:
+            result += f' (자동으로 다시 켬: {", ".join(restarted)})'
+        self.stdout.write(f'{stamp} {result}')
         if dry:
             for m in messages:
                 self.stdout.write('[알림 예정] ' + m)
