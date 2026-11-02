@@ -19,3 +19,6 @@ venv/
 # 운영체제 파일
 .DS_Store
 Thumbs.db
+
+# 업로드 파일 (매일 자동 백업으로 관리, git 에는 넣지 않음)
+/media/
