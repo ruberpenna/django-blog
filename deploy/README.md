@@ -219,6 +219,30 @@ $env:PGPASSWORD = "<DB 비밀번호>"
    nssm restart blog-waitress
    ```
 
+## 상태 감시 (텔레그램 알림)
+
+`manage.py healthcheck`가 5분마다 Django(Waitress), Caddy, 외부 주소(NPM 경유)를 확인합니다.
+
+- 응답이 없으면 멈춘 서비스(blog-waitress, blog-caddy)를 다시 켜고, 결과를 텔레그램으로 알립니다.
+- 장애가 계속되면 1시간마다 다시 알리고, 복구되면 "복구됨"을 보냅니다. PC가 재부팅되면 그것도 알립니다.
+- 텔레그램 설정은 위 "댓글 텔레그램 알림"과 같은 `.env` 값을 씁니다.
+
+```powershell
+myvenv\Scripts\python.exe manage.py healthcheck --dry-run   # 확인만 (재시작/알림 없음)
+powershell -ExecutionPolicy Bypass -File deploy\register_healthcheck_task.ps1   # 5분마다 실행 등록 (관리자)
+```
+
+결과는 `logs\healthcheck.log`에 남습니다.
+
+재부팅 직후 외장 드라이브가 늦게 잡혀 서비스가 실패하지 않도록, 두 서비스는 "지연된 자동 시작"과 실패 시 1분 뒤 재시작으로 설정합니다(관리자 PowerShell).
+
+```powershell
+sc.exe config blog-waitress start= delayed-auto
+sc.exe failure blog-waitress reset= 86400 actions= restart/60000/restart/60000/restart/60000
+sc.exe config blog-caddy start= delayed-auto
+sc.exe failure blog-caddy reset= 86400 actions= restart/60000/restart/60000/restart/60000
+```
+
 ## 서비스 관리
 
 ```powershell

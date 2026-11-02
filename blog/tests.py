@@ -1,3 +1,5 @@
+import os
+import time
 from datetime import timedelta
 from unittest import mock
 
@@ -561,3 +563,74 @@ class SummernoteVideoScriptTests(TestCase):
         # same-origin 이면 유튜브가 출처를 못 받아 오류 153. 사이트 주소만 전달하는 정책이어야 함
         res = self.client.get('/')
         self.assertEqual(res['Referrer-Policy'], 'strict-origin-when-cross-origin')
+
+
+# 상태 감시 (healthcheck): 실제 서비스/텔레그램 대신 가짜로 바꿔서 상황별 알림 확인
+class HealthcheckTests(TestCase):
+    def setUp(self):
+        import tempfile
+        from blog.management.commands import healthcheck as hc
+        self.hc = hc
+        tmp = tempfile.mkdtemp()
+        patches = [
+            mock.patch.object(hc, 'STATE_FILE', os.path.join(tmp, 'state.json')),
+            mock.patch.object(hc, 'boot_time', return_value='2026-11-01T00:00:00'),
+            mock.patch.object(hc.time, 'sleep'),
+            mock.patch.object(hc, 'send_telegram'),
+            mock.patch.object(hc.subprocess, 'run'),
+        ]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        self.sent = hc.send_telegram
+        self.down = set()           # 응답하지 않는 주소
+        self.service = 'RUNNING'
+        mock.patch.object(hc, 'check', side_effect=lambda url: 'URLError: refused' if url in self.down else None).start()
+        mock.patch.object(hc, 'service_state', side_effect=lambda name: self.service).start()
+        self.addCleanup(mock.patch.stopall)
+
+    def run_check(self):
+        from io import StringIO
+        from django.core.management import call_command
+        self.sent.reset_mock()
+        call_command('healthcheck', stdout=StringIO())
+        return [c.args[0] for c in self.sent.call_args_list]
+
+    def test_ok_sends_nothing(self):
+        self.assertEqual(self.run_check(), [])
+
+    def test_outage_alert_once_then_hourly_then_recovery(self):
+        self.down = {'http://127.0.0.1:8123/', 'https://django.pennatic.info/'}
+        msgs = self.run_check()
+        self.assertEqual(len(msgs), 1)
+        self.assertIn('장애', msgs[0])
+        self.assertIn('Caddy', msgs[0])
+        self.assertEqual(self.run_check(), [])  # 5분 뒤: 다시 알리지 않음
+        with mock.patch.object(self.hc.time, 'time', return_value=time.time() + 3700):
+            msgs = self.run_check()  # 1시간 뒤: 한 번 더
+        self.assertEqual(len(msgs), 1)
+        self.assertIn('계속', msgs[0])
+        self.down = set()
+        msgs = self.run_check()
+        self.assertEqual(len(msgs), 1)
+        self.assertIn('복구', msgs[0])
+
+    def test_stopped_service_restarted_and_reported(self):
+        self.down = {'http://127.0.0.1:8000/', 'http://127.0.0.1:8123/', 'https://django.pennatic.info/'}
+        self.service = 'STOPPED'
+        def start(cmd, **kw):  # sc start 하면 다시 응답
+            if cmd[:2] == ['sc.exe', 'start']:
+                self.down = set()
+        self.hc.subprocess.run.side_effect = start
+        msgs = self.run_check()
+        started = [c.args[0][2] for c in self.hc.subprocess.run.call_args_list if c.args[0][:2] == ['sc.exe', 'start']]
+        self.assertEqual(started, ['blog-waitress', 'blog-caddy'])
+        self.assertEqual(len(msgs), 1)  # 다시 켜서 정상이면 "자동으로 다시 켰음" 만 알림
+        self.assertIn('자동으로 다시 켰습니다', msgs[0])
+
+    def test_reboot_detected(self):
+        self.run_check()
+        self.hc.boot_time.return_value = '2026-11-02T03:23:13'
+        msgs = self.run_check()
+        self.assertEqual(len(msgs), 1)
+        self.assertIn('재부팅', msgs[0])
