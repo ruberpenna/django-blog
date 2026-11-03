@@ -161,6 +161,30 @@ h1, h2, h3, h4 {
     transform: translateY(-2px);
 }
 
+/* 사진/영상이 있는 글: 오른쪽에 썸네일 */
+.post-card.has-thumb { display: flex; gap: 24px; align-items: flex-start; }
+.post-card-body { flex: 1; min-width: 0; }
+.post-thumb {
+    order: 2;
+    flex: 0 0 180px;
+    height: 124px;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg);
+    border: 1px solid var(--line);
+}
+.post-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.post-thumb.is-video::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 40px; height: 40px;
+    margin: -20px 0 0 -20px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .6) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 7l8 5-8 5z' fill='%23fff'/%3E%3C/svg%3E") center / 24px no-repeat;
+}
+
 .post-meta {
     display: flex;
     align-items: center;
@@ -680,6 +704,9 @@ a.badge-ctg:hover { background: var(--accent); color: #fff; }
     .theme-toggle { width: 30px; }
     .brand { font-size: 20px; }
     .post-card { padding: 20px; }
+    .post-card.has-thumb { gap: 14px; }
+    .post-thumb { flex-basis: 96px; height: 96px; }
+    .post-thumb.is-video::after { width: 32px; height: 32px; margin: -16px 0 0 -16px; background-size: 20px; }
     .post-view, .comments, .panel-box { padding: 22px 20px; }
     .post-view-title { font-size: 24px; }
     .editor-card { padding: 20px; }

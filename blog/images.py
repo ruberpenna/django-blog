@@ -71,3 +71,44 @@ def shrink_attachment(sender, instance, **kwargs):
     new_data, new_name = shrunk
     logger.info('사진 줄임: %s %dKB -> %dKB', f.name, len(data) // 1024, len(new_data) // 1024)
     instance.file = ContentFile(new_data, name=new_name)
+
+
+THUMB_SIZE = 400     # 목록 썸네일 긴 변 픽셀
+THUMB_DIR = 'thumbs'
+
+
+def list_thumbnail_url(url):
+    """본문 사진 주소(/media/...)에 대한 목록용 작은 썸네일 주소.
+    media/thumbs/ 아래에 처음 한 번 만들어 두고, 만들 수 없으면(외부 주소, 파일 없음 등) 원래 주소 반환"""
+    from django.conf import settings
+
+    media_url = settings.MEDIA_URL
+    if not url.startswith(media_url):
+        return url
+    rel = url[len(media_url):].split('?')[0]
+    root = os.path.realpath(settings.MEDIA_ROOT)
+    src = os.path.realpath(os.path.join(root, rel))
+    if not src.startswith(root + os.sep) or not os.path.isfile(src):
+        return url  # media 폴더 밖을 가리키거나 없는 파일
+
+    thumb_rel = os.path.splitext(os.path.relpath(src, root))[0] + '.jpg'
+    if thumb_rel.startswith(THUMB_DIR + os.sep):
+        return url  # 이미 썸네일
+    dst = os.path.join(root, THUMB_DIR, thumb_rel)
+    if not os.path.isfile(dst) or os.path.getmtime(dst) < os.path.getmtime(src):
+        try:
+            with Image.open(src) as img:
+                img = ImageOps.exif_transpose(img)
+                img.thumbnail((THUMB_SIZE, THUMB_SIZE), Image.LANCZOS)
+                if img.mode not in ('RGB', 'L'):
+                    # 투명 배경은 흰색으로
+                    bg = Image.new('RGB', img.size, 'white')
+                    rgba = img.convert('RGBA')
+                    bg.paste(rgba, mask=rgba.split()[-1])
+                    img = bg
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                img.save(dst, 'JPEG', quality=80, optimize=True)
+        except Exception:
+            logger.exception('목록 썸네일 만들기 실패: %s', src)
+            return url
+    return media_url + THUMB_DIR + '/' + thumb_rel.replace(os.sep, '/')

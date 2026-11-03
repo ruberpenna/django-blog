@@ -27,6 +27,12 @@ def resolve_category(name, existing):
     return {c.lower(): c for c in existing}.get(name.lower(), name)
 
 
+# 본문의 <img src="..."> 또는 유튜브 <iframe src=".../embed/영상ID">
+THUMB_RE = re.compile(
+    r'<img[^>]+src=["\'](?P<img>(?!data:)[^"\']+)["\']'
+    r'|<iframe[^>]+src=["\'][^"\']*youtube(?:-nocookie)?\.com/embed/(?P<yt>[\w-]{11})')
+
+
 # 블로그 포스트 DB 세팅
 class Post(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -56,10 +62,27 @@ class Post(models.Model):
         text = ' '.join(html.unescape(re.sub(r'<[^>]+>', ' ', self.text or '')).split())
         return Truncator(text).chars(length)
 
-    # 본문의 첫 번째 이미지 주소 (공유 미리보기 썸네일)
+    # 본문에서 먼저 나오는 사진 또는 유튜브 영상의 썸네일 (목록 썸네일, 공유 미리보기)
+    # {'url': 주소, 'video': 영상이면 True}, 없으면 None
+    def thumbnail(self):
+        match = THUMB_RE.search(self.text or '')
+        if not match:
+            return None
+        if match.group('img'):
+            return {'url': html.unescape(match.group('img')), 'video': False}
+        return {'url': f'https://i.ytimg.com/vi/{match.group("yt")}/hqdefault.jpg', 'video': True}
+
+    # 목록용: 올린 사진은 작게 줄인 썸네일 파일 주소로
+    def list_thumbnail(self):
+        thumb = self.thumbnail()
+        if thumb and not thumb['video']:
+            from .images import list_thumbnail_url
+            thumb['url'] = list_thumbnail_url(thumb['url'])
+        return thumb
+
     def first_image(self):
-        match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', self.text or '')
-        return match.group(1) if match else ''
+        thumb = self.thumbnail()
+        return thumb['url'] if thumb else ''
 
     def approved_comments(self):
         return self.comments.filter(approved_comment=True)

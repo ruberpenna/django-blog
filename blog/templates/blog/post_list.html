@@ -19,7 +19,14 @@
     {% endif %}
 
     {% for post in lists %}
-        <article class="post-card">
+        {% with thumb=post.list_thumbnail %}
+        <article class="post-card{% if thumb %} has-thumb{% endif %}">
+            {% if thumb %}
+            <a href="{% url 'post_detail' pk=post.pk %}" class="post-thumb{% if thumb.video %} is-video{% endif %}" tabindex="-1" aria-hidden="true">
+                <img src="{{ thumb.url }}" alt="" loading="lazy" decoding="async">
+            </a>
+            {% endif %}
+            <div class="post-card-body">
             <div class="post-meta">
                 <a href="{% url 'post_srch' %}?ctg={{ post.ctg|urlencode }}" class="badge-ctg">{{ post.ctg }}</a>
                 <time>{{ post.published_date|date:'Y.m.d H:i' }}</time>
@@ -34,7 +41,9 @@
                 </span>
                 <a href="{% url 'post_detail' pk=post.pk %}" class="read-more">계속 읽기 &rarr;</a>
             </div>
+            </div>
         </article>
+        {% endwith %}
     {% empty %}
         <div class="empty-box">게시글이 없습니다.</div>
     {% endfor %}

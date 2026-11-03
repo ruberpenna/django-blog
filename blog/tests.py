@@ -634,3 +634,52 @@ class HealthcheckTests(TestCase):
         msgs = self.run_check()
         self.assertEqual(len(msgs), 1)
         self.assertIn('재부팅', msgs[0])
+
+
+# 목록 썸네일: 본문에서 먼저 나오는 사진 또는 유튜브 영상
+class ThumbnailTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('tester', password='test-pass-123')
+
+    def post(self, text):
+        return Post.objects.create(author=self.user, title='글', text=text, ctg='기타',
+                                   published_date=timezone.now() - timedelta(days=1))
+
+    def test_image_and_video(self):
+        self.assertIsNone(self.post('<p>글만 있음</p>').thumbnail())
+        img = self.post('<p><img style="width: 50%;" src="/media/a.jpg?x=1&amp;y=2"></p>')
+        self.assertEqual(img.thumbnail(), {'url': '/media/a.jpg?x=1&y=2', 'video': False})
+        video = self.post('<iframe frameborder="0" src="//www.youtube.com/embed/R-vRWwaZTiU" width="640"></iframe>')
+        self.assertEqual(video.thumbnail(),
+                         {'url': 'https://i.ytimg.com/vi/R-vRWwaZTiU/hqdefault.jpg', 'video': True})
+        self.assertEqual(video.first_image(), 'https://i.ytimg.com/vi/R-vRWwaZTiU/hqdefault.jpg')
+
+    def test_first_one_wins_and_skips_inline_data(self):
+        both = self.post('<iframe src="https://www.youtube.com/embed/EPy4dzOTHgM"></iframe><img src="/media/b.jpg">')
+        self.assertTrue(both.thumbnail()['video'])
+        inline = self.post('<img src="data:image/png;base64,AAAA"><img src="/media/c.png">')
+        self.assertEqual(inline.thumbnail()['url'], '/media/c.png')
+
+    def test_list_page(self):
+        self.post('<p>썸네일 없는 글</p>')
+        self.post('<iframe src="//www.youtube.com/embed/R-vRWwaZTiU"></iframe>')
+        res = self.client.get('/')
+        self.assertContains(res, 'class="post-card has-thumb"', count=1)
+        self.assertContains(res, 'post-thumb is-video')
+        self.assertContains(res, 'https://i.ytimg.com/vi/R-vRWwaZTiU/hqdefault.jpg')
+
+    def test_list_thumbnail_file(self):
+        import shutil, tempfile
+        from PIL import Image
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        with override_settings(MEDIA_ROOT=media, MEDIA_URL='/media/'):
+            os.makedirs(os.path.join(media, 'django-summernote', 'd'))
+            Image.new('RGBA', (1600, 1200), (255, 0, 0, 128)).save(os.path.join(media, 'django-summernote', 'd', 'big.png'))
+            post = self.post('<img src="/media/django-summernote/d/big.png">')
+            self.assertEqual(post.list_thumbnail()['url'], '/media/thumbs/django-summernote/d/big.jpg')
+            with Image.open(os.path.join(media, 'thumbs', 'django-summernote', 'd', 'big.jpg')) as thumb:
+                self.assertEqual(thumb.size, (400, 300))
+            # 없는 파일, media 밖, 외부 주소는 원래 주소 그대로
+            for url in ['/media/none.jpg', '/media/../manage.py', 'https://example.com/a.jpg']:
+                self.assertEqual(self.post(f'<img src="{url}">').list_thumbnail()['url'], url)
