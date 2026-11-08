@@ -15,7 +15,7 @@ from blog.notify import send_telegram
 CHECKS = [
     ('Django(Waitress)', 'http://127.0.0.1:8000/', 'blog-waitress'),
     ('Caddy', 'http://127.0.0.1:8123/', 'blog-caddy'),
-    ('외부 주소(NPM)', 'https://django.pennatic.info/', None),
+    ('외부 주소(NPM)', 'https://blog.pennatic.info/', None),
 ]
 REPEAT_ALERT_SECONDS = 60 * 60  # 장애가 계속되면 1시간마다 다시 알림
 STATE_FILE = os.path.join(settings.BASE_DIR, 'logs', 'healthcheck_state.json')
@@ -91,7 +91,7 @@ class Command(BaseCommand):
             if first or now - state.get('last_alert', 0) >= REPEAT_ALERT_SECONDS:
                 minutes = int((now - state['down_since']) // 60)
                 head = '🚨 블로그 접속 장애' if first else f'🚨 블로그 장애 계속 ({minutes}분째)'
-                messages.append(f'{head}\n{detail}\n\nhttps://django.pennatic.info/')
+                messages.append(f'{head}\n{detail}\n\nhttps://blog.pennatic.info/')
                 state['last_alert'] = now
         else:
             note = f'\n(자동으로 다시 켠 서비스: {", ".join(restarted)})' if restarted else ''

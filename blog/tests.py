@@ -600,7 +600,7 @@ class HealthcheckTests(TestCase):
         self.assertEqual(self.run_check(), [])
 
     def test_outage_alert_once_then_hourly_then_recovery(self):
-        self.down = {'http://127.0.0.1:8123/', 'https://django.pennatic.info/'}
+        self.down = {'http://127.0.0.1:8123/', 'https://blog.pennatic.info/'}
         msgs = self.run_check()
         self.assertEqual(len(msgs), 1)
         self.assertIn('장애', msgs[0])
@@ -616,7 +616,7 @@ class HealthcheckTests(TestCase):
         self.assertIn('복구', msgs[0])
 
     def test_stopped_service_restarted_and_reported(self):
-        self.down = {'http://127.0.0.1:8000/', 'http://127.0.0.1:8123/', 'https://django.pennatic.info/'}
+        self.down = {'http://127.0.0.1:8000/', 'http://127.0.0.1:8123/', 'https://blog.pennatic.info/'}
         self.service = 'STOPPED'
         def start(cmd, **kw):  # sc start 하면 다시 응답
             if cmd[:2] == ['sc.exe', 'start']:

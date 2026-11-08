@@ -1,5 +1,5 @@
 # django_blog
-https://django.pennatic.info/
+https://blog.pennatic.info/
 <br/><br/>
 2017~2022 => Worked locally
 <br/><br/>
